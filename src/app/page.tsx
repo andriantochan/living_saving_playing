@@ -8,6 +8,7 @@ import { ExpenseList } from '../components/ExpenseList'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Modal } from '../components/Modal'
 import { PlusCircle, Wallet, Filter, Download } from 'lucide-react'
+import { toast } from 'sonner'
 
 // Define the type here or import from a shared types file
 type Expense = {
@@ -37,6 +38,7 @@ export default function Home() {
 
     if (error) {
       console.error('Error fetching expenses:', error)
+      toast.error('Failed to load expenses')
     } else {
       setExpenses(data as Expense[] || [])
       // If we don't have a selected month yet (or invalid), default to current
@@ -120,8 +122,9 @@ export default function Home() {
 
     if (error) {
       console.error('Error adding expense:', error)
-      alert('Failed to add expense')
+      toast.error('Failed to add expense')
     } else {
+      toast.success('Transaction added successfully')
       fetchExpenses()
       setShowForm(false)
       setEditingExpense(null)
@@ -137,8 +140,9 @@ export default function Home() {
 
     if (error) {
       console.error('Error updating expense:', error)
-      alert('Failed to update expense')
+      toast.error('Failed to update expense')
     } else {
+      toast.success('Transaction updated successfully')
       fetchExpenses()
       setShowForm(false)
       setEditingExpense(null)
@@ -146,7 +150,7 @@ export default function Home() {
   }
 
   const handleExport = () => {
-    if (filteredExpenses.length === 0) return alert('No expenses to export')
+    if (filteredExpenses.length === 0) return toast.error('No expenses to export')
 
     const headers = ['Date', 'Category', 'Description', 'Amount', 'Type']
     const csvContent = [

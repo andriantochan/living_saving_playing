@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '../components/ThemeProvider'
+import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
   title: 'Financial Tracker - Living, Playing, Saving',
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
           {children}
+          <Toaster position="bottom-right" richColors />
         </ThemeProvider>
       </body>
     </html>
