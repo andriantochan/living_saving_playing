@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Legend } from 'recharts'
-import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign, PiggyBank } from 'lucide-react'
 import { Modal } from './Modal'
 import { ExpenseForm } from './ExpenseForm'
 
@@ -14,7 +14,7 @@ type Expense = {
     date: string
 }
 
-export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number }) {
+export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance, totalSavings }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number }) {
     const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -90,7 +90,7 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
     return (
         <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Wallet Balance */}
                 <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg transform transition-all hover:scale-[1.02]">
                     <div className="flex justify-between items-start mb-4">
@@ -105,21 +105,35 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                     </div>
                 </div>
 
+                {/* Total Savings - NEW CARD */}
+                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg transform transition-all hover:scale-[1.02]">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                            <PiggyBank className="w-6 h-6" />
+                        </div>
+                        <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Total Saved</span>
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-2xl font-bold tracking-tight">{formatCurrency(totalSavings)}</h3>
+                        <p className="text-emerald-100 text-sm font-medium opacity-90">Accumulated Savings</p>
+                    </div>
+                </div>
+
                 {/* Income Card */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
                     <div className="flex justify-between items-start mb-2">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Income ({new Date().toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit' })})</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Income ({new Date().toLocaleDateString('id-ID', { year: '2-digit', month: '2-digit' })})</p>
                         <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-md dark:bg-emerald-900/30 dark:text-emerald-400">
                             <ArrowUpRight className="w-4 h-4" />
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalIncome)}</h3>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalIncome)}</h3>
                         <div className="flex items-center text-xs">
                             <span className="text-emerald-600 font-medium flex items-center dark:text-emerald-400">
                                 <TrendingUp className="w-3 h-3 mr-1" /> +{incomeGrowth}%
                             </span>
-                            <span className="text-gray-400 ml-2 dark:text-gray-500">vs last month</span>
+                            <span className="text-gray-400 ml-2 dark:text-gray-500">vs last</span>
                         </div>
                     </div>
                 </div>
@@ -127,17 +141,16 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                 {/* Expenses Card */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
                     <div className="flex justify-between items-start mb-2">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Expenses ({new Date().toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit' })})</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Expenses ({new Date().toLocaleDateString('id-ID', { year: '2-digit', month: '2-digit' })})</p>
                         <div className="p-1.5 bg-red-100 text-red-600 rounded-md dark:bg-red-900/30 dark:text-red-400">
                             <ArrowDownRight className="w-4 h-4" />
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalExpenses)}</h3>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalExpenses)}</h3>
                         <div className="flex items-center text-xs justify-between">
                             <span className="text-gray-400 dark:text-gray-500 flex items-center">
                                 Target: <span className="text-gray-600 dark:text-gray-300 ml-1 font-medium">{formatCurrency(budgetLimit)}</span>
-                                <PencilIcon className="w-3 h-3 ml-1 cursor-pointer hover:text-indigo-500" />
                             </span>
                         </div>
                     </div>
@@ -146,16 +159,16 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                 {/* Cash Flow / Saving Rate */}
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700">
                     <div className="flex justify-between items-start mb-2">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Cash Flow ({new Date().toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit' })})</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Cash Flow</p>
                         <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md dark:bg-blue-900/30 dark:text-blue-400">
                             <DollarSign className="w-4 h-4" />
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                             {totalIncome - totalExpenses >= 0 ? '+' : ''}{formatCurrency(totalIncome - totalExpenses)}
                         </h3>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">Income - Expense</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Net this month</p>
                     </div>
                 </div>
             </div>

@@ -9,11 +9,14 @@ type ExpenseFormData = {
     category: 'Living' | 'Playing' | 'Saving' | 'Income'
     description: string
     date: string
+    source?: 'Balance' | 'Saving'
 }
 
-export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (data: ExpenseFormData) => void, initialData?: ExpenseFormData, onCancel?: () => void }) {
+export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 }: { onSubmit: (data: ExpenseFormData) => void, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number }) {
     const [amount, setAmount] = useState('')
     const [category, setCategory] = useState<'Living' | 'Playing' | 'Saving' | 'Income'>('Living')
+    const [isWithdrawal, setIsWithdrawal] = useState(false)
+    const [source, setSource] = useState<'Balance' | 'Saving'>('Balance')
     const [description, setDescription] = useState('')
     const [date, setDate] = useState('')
     const [loading, setLoading] = useState(false)
@@ -21,14 +24,23 @@ export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (da
 
     useEffect(() => {
         if (initialData) {
-            setAmount(initialData.amount.toString())
+            const rawAmount = initialData.amount
+            setAmount(Math.abs(rawAmount).toString())
             setCategory(initialData.category)
+            if (initialData.category === 'Saving' && rawAmount < 0) {
+                setIsWithdrawal(true)
+            } else {
+                setIsWithdrawal(false)
+            }
             setDescription(initialData.description)
             // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
             const d = new Date(initialData.date)
             // Adjust to local ISO string roughly
             const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16)
             setDate(localIso)
+        } else {
+            // Default source is Balance
+            setSource('Balance')
         }
     }, [initialData])
 
@@ -38,11 +50,24 @@ export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (da
         setLoading(true)
 
         // Validate amount
-        const cleanAmount = parseInt(amount.replace(/\./g, ''), 10)
+        let cleanAmount = parseInt(amount.replace(/\./g, ''), 10)
         if (isNaN(cleanAmount) || cleanAmount <= 0) {
             setError('Please enter a valid amount')
             setLoading(false)
             return
+        }
+
+        // Validate Savings Balance
+        if ((category === 'Living' || category === 'Playing') && source === 'Saving') {
+            if (cleanAmount > totalSavings) {
+                setError(`Insufficient savings! You only have Rp ${totalSavings.toLocaleString('id-ID')}`)
+                setLoading(false)
+                return
+            }
+        }
+
+        if (category === 'Saving' && isWithdrawal) {
+            cleanAmount = -cleanAmount
         }
 
         if (!description.trim()) {
@@ -60,7 +85,8 @@ export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (da
             amount: cleanAmount,
             category,
             description,
-            date: finalDate
+            date: finalDate,
+            source: (category === 'Living' || category === 'Playing') ? source : undefined
         })
 
         // Reset form if not editing
@@ -69,6 +95,8 @@ export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (da
             setDescription('')
             setDate('')
             setCategory('Living')
+            setIsWithdrawal(false)
+            setSource('Balance')
         }
         setLoading(false)
     }
@@ -82,7 +110,10 @@ export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (da
                         <button
                             type="button"
                             key={cat}
-                            onClick={() => setCategory(cat as any)}
+                            onClick={() => {
+                                setCategory(cat as any)
+                                if (cat !== 'Saving') setIsWithdrawal(false)
+                            }}
                             className={cn(
                                 "py-2 px-2 rounded-md text-xs sm:text-sm font-medium transition-colors border truncate",
                                 category === cat
@@ -94,12 +125,85 @@ export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (da
                         </button>
                     ))}
                 </div>
+
+                {/* ID: Savings Withdrawal Toggle */}
+                {category === 'Saving' && (
+                    <div className="mt-3 flex items-center space-x-4 bg-gray-50 p-2 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Action:</span>
+                        <div className="flex space-x-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsWithdrawal(false)}
+                                className={cn(
+                                    "px-3 py-1 text-xs font-medium rounded-full transition-all",
+                                    !isWithdrawal
+                                        ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-500 dark:bg-emerald-900/40 dark:text-emerald-300"
+                                        : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600"
+                                )}
+                            >
+                                Deposit (Save)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsWithdrawal(true)}
+                                className={cn(
+                                    "px-3 py-1 text-xs font-medium rounded-full transition-all",
+                                    isWithdrawal
+                                        ? "bg-amber-100 text-amber-700 ring-1 ring-amber-500 dark:bg-amber-900/40 dark:text-amber-300"
+                                        : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600"
+                                )}
+                            >
+                                Withdraw (Use)
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
                     {category === 'Living' && "Necessities: Food, rent, utilities, transport."}
                     {category === 'Playing' && "Wants: Hobby, games, vacation, dining out."}
-                    {category === 'Saving' && "Future: Investments, emergency fund, savings."}
+                    {category === 'Saving' && isWithdrawal ? "Taking money from savings." : category === 'Saving' && "Future: Investments, emergency fund, savings."}
                     {category === 'Income' && "Earnings: Salary, freelance, gifts."}
                 </p>
+
+                {/* ID: Source Selection for Living/Playing */}
+                {(category === 'Living' || category === 'Playing') && (
+                    <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-gray-400">Payment Source</label>
+                        <div className="flex space-x-2">
+                            <button
+                                type="button"
+                                onClick={() => setSource('Balance')}
+                                className={cn(
+                                    "flex-1 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all border",
+                                    source === 'Balance'
+                                        ? "bg-white text-indigo-600 border-indigo-500 shadow-sm ring-1 ring-indigo-500 dark:bg-gray-700 dark:text-indigo-400"
+                                        : "bg-gray-100 text-gray-500 border-transparent hover:bg-gray-200 dark:bg-gray-900/50 dark:text-gray-400 dark:hover:bg-gray-700"
+                                )}
+                            >
+                                <span className="flex items-center justify-center">
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500 mr-2"></span>
+                                    Wallet Balance
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSource('Saving')}
+                                className={cn(
+                                    "flex-1 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all border",
+                                    source === 'Saving'
+                                        ? "bg-white text-emerald-600 border-emerald-500 shadow-sm ring-1 ring-emerald-500 dark:bg-gray-700 dark:text-emerald-400"
+                                        : "bg-gray-100 text-gray-500 border-transparent hover:bg-gray-200 dark:bg-gray-900/50 dark:text-gray-400 dark:hover:bg-gray-700"
+                                )}
+                            >
+                                <span className="flex items-center justify-center">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
+                                    Savings ({totalSavings > 0 ? `Rp ${(totalSavings / 1000).toFixed(0)}k` : '0'})
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

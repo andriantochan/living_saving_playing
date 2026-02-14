@@ -104,7 +104,11 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                 <div className={cn("p-2 rounded-full",
                                     expense.category === 'Living' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
                                         expense.category === 'Playing' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                                            expense.category === 'Saving' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                            expense.category === 'Saving' ? (
+                                                expense.amount < 0
+                                                    ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
+                                                    : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                            ) :
                                                 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
                                 )}>
                                     {expense.category === 'Living' && <Home className="w-5 h-5" />}
@@ -122,16 +126,18 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                             hour: '2-digit',
                                             minute: '2-digit',
                                             second: '2-digit'
-                                        })} • {expense.category}
+                                        })} • {expense.category} {expense.category === 'Saving' && expense.amount < 0 ? '(Withdrawal)' : ''}
                                     </p>
                                 </div>
                             </div>
                             <div className="flex items-center space-x-4">
                                 <span className={cn("font-semibold",
-                                    expense.category === 'Saving' ? 'text-emerald-600 dark:text-emerald-400' :
+                                    expense.category === 'Saving' ? (
+                                        expense.amount < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                                    ) :
                                         expense.category === 'Income' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-gray-100'
                                 )}>
-                                    {expense.category === 'Saving' || expense.category === 'Income' ? '+' : '-'} Rp {expense.amount.toLocaleString('id-ID')}
+                                    {expense.category === 'Income' || (expense.category === 'Saving' && expense.amount >= 0) ? '+' : '-'} Rp {Math.abs(expense.amount).toLocaleString('id-ID')}
                                 </span>
                                 <button
                                     onClick={() => onEdit(expense)}

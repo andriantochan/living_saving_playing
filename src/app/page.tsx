@@ -65,32 +65,59 @@ export default function Home() {
   }, [expenses, selectedMonth])
 
   // derived state for totals
-  const { totalIncome, totalExpenses, balance } = useMemo(() => {
+  const { totalIncome, totalExpenses, balance, totalSavings } = useMemo(() => {
     let income = 0
     let expense = 0
     let allTimeIncome = 0
     let allTimeExpense = 0
+    let allTimeSavings = 0
 
     expenses.forEach(e => {
+      const amount = Number(e.amount) || 0
       const isIncome = e.category === 'Income'
-      if (isIncome) allTimeIncome += e.amount
-      else allTimeExpense += e.amount
+      const isSaving = e.category === 'Saving'
+
+      if (isIncome) allTimeIncome += amount
+      else allTimeExpense += amount
+
+      if (isSaving) allTimeSavings += amount
 
       if (e.date.startsWith(selectedMonth)) {
-        if (isIncome) income += e.amount
-        else expense += e.amount
+        if (isIncome) income += amount
+        else expense += amount
       }
     })
 
     return {
       totalIncome: income,
       totalExpenses: expense,
-      balance: allTimeIncome - allTimeExpense
+      balance: allTimeIncome - allTimeExpense,
+      totalSavings: allTimeSavings
     }
   }, [expenses, selectedMonth])
 
-  const handleAddExpense = async (data: Omit<Expense, 'id'>) => {
-    const { error } = await supabase.from('expenses').insert([data])
+  const handleAddExpense = async (data: Omit<Expense, 'id'> & { source?: 'Balance' | 'Saving' }) => {
+    const expensesToInsert = [
+      {
+        amount: data.amount,
+        category: data.category,
+        description: data.description,
+        date: data.date
+      }
+    ]
+
+    // If paid from savings, add a withdrawal transaction
+    if (data.source === 'Saving') {
+      expensesToInsert.push({
+        amount: -data.amount,
+        category: 'Saving',
+        description: `Cover for: ${data.description}`,
+        date: data.date
+      })
+    }
+
+    const { error } = await supabase.from('expenses').insert(expensesToInsert)
+
     if (error) {
       console.error('Error adding expense:', error)
       alert('Failed to add expense')
@@ -209,6 +236,7 @@ export default function Home() {
               totalIncome={totalIncome}
               totalExpenses={totalExpenses}
               balance={balance}
+              totalSavings={totalSavings}
             />
 
             <Modal
@@ -226,6 +254,7 @@ export default function Home() {
                   setShowForm(false)
                   setEditingExpense(null)
                 }}
+                totalSavings={totalSavings}
               />
             </Modal>
 
