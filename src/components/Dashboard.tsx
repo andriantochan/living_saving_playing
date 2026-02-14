@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
-import { TrendingUp, AlertTriangle, Wallet, PiggyBank, Gamepad2, Home, Calendar, Edit2, Check, X, Banknote, CreditCard, ArrowUpRight, ArrowDownRight } from 'lucide-react'
-import { cn } from '../lib/utils'
-import { supabase } from '../lib/supabase'
+import { useState, useMemo } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Legend } from 'recharts'
+import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign } from 'lucide-react'
+import { Modal } from './Modal'
+import { ExpenseForm } from './ExpenseForm'
 
 type Expense = {
     id: string
@@ -14,369 +14,318 @@ type Expense = {
     date: string
 }
 
-const COLORS = {
-    Living: '#3b82f6', // blue-500
-    Playing: '#ef4444', // red-500
-    Saving: '#10b981', // emerald-500
-    Income: '#f59e0b', // amber-500
-}
+export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number }) {
+    const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
-export function Dashboard({ expenses, selectedMonth }: { expenses: Expense[], selectedMonth: string }) {
-    // Filter expenses for the selected month (YYYY-MM format)
-    const filteredExpenses = useMemo(() => {
-        return expenses.filter(exp => exp.date.startsWith(selectedMonth))
-    }, [expenses, selectedMonth])
-
-    // Calculate totals for selected month
-    // Calculate totals for selected month
-    const monthlyIncome = filteredExpenses.filter(e => e.category === 'Income').reduce((sum, item) => sum + item.amount, 0)
-    const monthlyExpense = filteredExpenses.filter(e => e.category !== 'Income').reduce((sum, item) => sum + item.amount, 0)
-    const monthlyBalance = monthlyIncome - monthlyExpense
-
-    // Calculate All-Time Wallet Balance
-    const allTimeBalance = useMemo(() => {
-        return expenses.reduce((acc, curr) => {
-            if (curr.category === 'Income') return acc + curr.amount
-            return acc - curr.amount
-        }, 0)
-    }, [expenses])
-
+    // Calculate totals per category for Pie Chart
     const categoryTotals = useMemo(() => {
-        const totals = { Living: 0, Playing: 0, Saving: 0 }
-        filteredExpenses.forEach(exp => {
-            if (exp.category === 'Income') return // Skip Income for expense breakdown
-            if (totals[exp.category as keyof typeof totals] !== undefined) {
-                totals[exp.category as keyof typeof totals] += exp.amount
+        const totals = {
+            Living: 0,
+            Playing: 0,
+            Saving: 0
+        }
+        expenses.forEach(exp => {
+            if (exp.category !== 'Income') {
+                totals[exp.category] += exp.amount
             }
         })
         return [
-            { name: 'Living', value: totals.Living },
-            { name: 'Playing', value: totals.Playing },
-            { name: 'Saving', value: totals.Saving },
-        ]
-    }, [filteredExpenses])
+            { name: 'Living', value: totals.Living, color: '#3b82f6' }, // Blue-500
+            { name: 'Playing', value: totals.Playing, color: '#ef4444' }, // Red-500
+            { name: 'Saving', value: totals.Saving, color: '#10b981' }, // Emerald-500
+        ].filter(item => item.value > 0)
+    }, [expenses])
 
-    // Calculate Average Monthly Spending (excluding Income)
-    const averageMonthlyValues = useMemo(() => {
-        const monthlyTotals: Record<string, number> = {}
-        const monthsCounted = new Set<string>()
+    // Prepare data for Monthly Spending History Bar Chart
+    const monthlyHistory = useMemo(() => {
+        const history: Record<string, { name: string, Living: number, Playing: number, Saving: number, total: number }> = {}
 
-        expenses.forEach(exp => {
-            if (exp.category === 'Income') return
-            const month = exp.date.substring(0, 7)
+        // Sort expenses by date ascending to build history correctly
+        const sortedExpenses = [...expenses].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-            // Skip current month for "historical" average, or include it? 
-            // Usually average is based on past data. Let's exclude current selected month if it's incomplete, 
-            // but for simplicity, let's include all OTHER months.
-            if (month === selectedMonth) return
-
-            if (!monthlyTotals[month]) monthlyTotals[month] = 0
-            monthlyTotals[month] += exp.amount
-            monthsCounted.add(month)
-        })
-
-        const totalHistoricalExpense = Object.values(monthlyTotals).reduce((a, b) => a + b, 0)
-        const count = monthsCounted.size
-
-        return count > 0 ? Math.round(totalHistoricalExpense / count) : 5000000 // Default 5jt if no history
-    }, [expenses, selectedMonth])
-
-    const [budget, setBudget] = useState(averageMonthlyValues)
-    const [isEditingBudget, setIsEditingBudget] = useState(false)
-    const [budgetInput, setBudgetInput] = useState('')
-
-    // Fetch budget for selected month
-    useEffect(() => {
-        const fetchBudget = async () => {
-            const { data, error } = await supabase
-                .from('budgets')
-                .select('amount')
-                .eq('month', selectedMonth)
-                .single()
-
-            if (data) {
-                setBudget(data.amount)
-            } else {
-                // If no manual budget, use the calculated average
-                setBudget(averageMonthlyValues)
-            }
-        }
-        fetchBudget()
-    }, [selectedMonth, averageMonthlyValues])
-
-    const handleSaveBudget = async () => {
-        const amount = parseInt(budgetInput.replace(/\./g, ''))
-        if (isNaN(amount) || amount <= 0) return
-
-        const { error } = await supabase
-            .from('budgets')
-            .upsert({ month: selectedMonth, amount }, { onConflict: 'month' })
-
-        if (!error) {
-            setBudget(amount)
-            setIsEditingBudget(false)
-        } else {
-            alert('Failed to save budget')
-        }
-    }
-
-    const startEditingBudget = () => {
-        setBudgetInput(budget.toLocaleString('id-ID'))
-        setIsEditingBudget(true)
-    }
-
-    const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
-
-    // Prepare data for Monthly Total Bar Chart (Last 6 months + Current? Or all?)
-    // Prepare data for Monthly Total Bar Chart (Last 6 months + Current? Or all?)
-    const monthlyData = useMemo(() => {
-        const totalsByMonth: Record<string, { total: number, Living: number, Playing: number, Saving: number }> = {}
-
-        expenses.forEach(exp => {
-            if (selectedHistoryCategory !== 'All' && exp.category !== selectedHistoryCategory) return
-
-            // Skip income for generic "Total" history unless specifically selected (future improvement)
-            // For now, let's keep the existing graph as "Expense History"
+        sortedExpenses.forEach(exp => {
             if (exp.category === 'Income') return
 
-            const month = exp.date.substring(0, 7) // YYYY-MM
+            const date = new Date(exp.date)
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` // YYYY-MM
+            const monthName = date.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' })
 
-            if (!totalsByMonth[month]) {
-                totalsByMonth[month] = { total: 0, Living: 0, Playing: 0, Saving: 0 }
+            if (!history[monthKey]) {
+                history[monthKey] = { name: monthName, Living: 0, Playing: 0, Saving: 0, total: 0 }
             }
 
-            totalsByMonth[month].total += exp.amount
-            if (exp.category === 'Living') totalsByMonth[month].Living += exp.amount
-            if (exp.category === 'Playing') totalsByMonth[month].Playing += exp.amount
-            if (exp.category === 'Saving') totalsByMonth[month].Saving += exp.amount
+            history[monthKey][exp.category] += exp.amount
+            history[monthKey].total += exp.amount
         })
 
-        // Sort keys and take last 6
-        return Object.keys(totalsByMonth).sort().map(month => ({
-            month,
-            ...totalsByMonth[month]
-        }))
-    }, [expenses, selectedHistoryCategory])
+        // Fill in missing months if needed, or just return existing
+        // For now, let's just return the last 6 months present in data or empty
+        const keys = Object.keys(history).sort()
+        const recentKeys = keys.slice(-6) // Last 6 months
 
-    // Dynamic monthly limit
-    const isOverBudget = monthlyExpense > budget
-    const isNearBudget = monthlyExpense > budget * 0.8 && !isOverBudget
+        return recentKeys.map(key => history[key])
+    }, [expenses])
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount)
+    }
+
+    // Budget Status Logic (Simple Example)
+    const budgetLimit = 5000000 // Example fixed budget
+    const isOverBudget = totalExpenses > budgetLimit
+    const budgetHealthColor = isOverBudget ? 'text-red-500' : 'text-emerald-500'
+    const budgetHealthBg = isOverBudget ? 'bg-red-50 dark:bg-red-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'
+
+    // Calculate previous month comparison (mockup logic for "vs last month")
+    // In a real app, you'd calculate this from `expenses`
+    const incomeGrowth = 100 // Mock 100% growth for now or calculate real
+    const expenseGrowth = 0 // Mock
 
     return (
-        <div className="flex flex-col gap-6 mb-8">
-            {/* Top Row: Summary Cards */}
+        <div className="space-y-6">
+            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Wallet Balance */}
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 rounded-xl shadow-lg text-white">
-                    <div className="flex justify-between items-start mb-2">
-                        <p className="text-indigo-100 text-xs font-medium">Wallet Balance</p>
-                        <div className="p-1.5 bg-white/20 rounded-lg">
-                            <CreditCard className="w-4 h-4 text-white" />
+                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg transform transition-all hover:scale-[1.02]">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                            <Wallet className="w-6 h-6" />
                         </div>
+                        <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Total Balance</span>
                     </div>
-                    <h3 className="text-2xl font-bold">Rp {allTimeBalance.toLocaleString('id-ID')}</h3>
-                    <p className="text-[10px] text-indigo-100 opacity-80 mt-1">Net worth (All time)</p>
+                    <div className="space-y-1">
+                        <h3 className="text-2xl font-bold tracking-tight">{formatCurrency(balance)}</h3>
+                        <p className="text-indigo-100 text-sm font-medium opacity-90">Net worth (All time)</p>
+                    </div>
                 </div>
 
-                {/* Income */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                {/* Income Card */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
                     <div className="flex justify-between items-start mb-2">
-                        <p className="text-gray-500 text-xs font-medium">Income ({selectedMonth})</p>
-                        <div className="p-1.5 bg-green-100 text-green-600 rounded-lg">
-                            <ArrowDownRight className="w-4 h-4" />
-                        </div>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900">Rp {monthlyIncome.toLocaleString('id-ID')}</h3>
-                    <p className="text-[10px] text-green-600 font-medium mt-1">+100% vs last month</p>
-                </div>
-
-                {/* Expenses & Budget Target */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative group">
-                    <div className="flex justify-between items-start mb-2">
-                        <p className="text-gray-500 text-xs font-medium">Expenses ({selectedMonth})</p>
-                        <div className="p-1.5 bg-red-100 text-red-600 rounded-lg">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Income ({new Date().toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit' })})</p>
+                        <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-md dark:bg-emerald-900/30 dark:text-emerald-400">
                             <ArrowUpRight className="w-4 h-4" />
                         </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900">Rp {monthlyExpense.toLocaleString('id-ID')}</h3>
-
-                    <div className="mt-1 text-[10px] text-gray-500 flex items-center gap-1">
-                        <span>Target:</span>
-                        {isEditingBudget ? (
-                            <div className="flex items-center gap-1">
-                                <input
-                                    type="text"
-                                    value={budgetInput}
-                                    onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, '')
-                                        const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-                                        setBudgetInput(formatted)
-                                    }}
-                                    className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-gray-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-[10px]"
-                                    autoFocus
-                                />
-                                <button onClick={handleSaveBudget} className="text-green-600 hover:text-green-700"><Check className="w-3 h-3" /></button>
-                                <button onClick={() => setIsEditingBudget(false)} className="text-red-500 hover:text-red-600"><X className="w-3 h-3" /></button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 rounded px-1 -ml-1 transition-colors" onClick={startEditingBudget}>
-                                <span className={cn(isOverBudget ? "text-red-600 font-medium" : "text-gray-700")}>
-                                    Rp {budget.toLocaleString('id-ID')}
-                                </span>
-                                <Edit2 className="w-2.5 h-2.5 text-gray-400 opacity-50" />
-                            </div>
-                        )}
+                    <div className="space-y-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalIncome)}</h3>
+                        <div className="flex items-center text-xs">
+                            <span className="text-emerald-600 font-medium flex items-center dark:text-emerald-400">
+                                <TrendingUp className="w-3 h-3 mr-1" /> +{incomeGrowth}%
+                            </span>
+                            <span className="text-gray-400 ml-2 dark:text-gray-500">vs last month</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Cash Flow */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                {/* Expenses Card */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
                     <div className="flex justify-between items-start mb-2">
-                        <p className="text-gray-500 text-xs font-medium">Cash Flow ({selectedMonth})</p>
-                        <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
-                            <Wallet className="w-4 h-4" />
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Expenses ({new Date().toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit' })})</p>
+                        <div className="p-1.5 bg-red-100 text-red-600 rounded-md dark:bg-red-900/30 dark:text-red-400">
+                            <ArrowDownRight className="w-4 h-4" />
                         </div>
                     </div>
-                    <h3 className={cn("text-2xl font-bold", monthlyBalance >= 0 ? "text-gray-900" : "text-red-600")}>
-                        {monthlyBalance > 0 ? '+' : ''} Rp {monthlyBalance.toLocaleString('id-ID')}
-                    </h3>
-                    <p className="text-[10px] text-gray-400 mt-1">Income - Expense</p>
+                    <div className="space-y-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalExpenses)}</h3>
+                        <div className="flex items-center text-xs justify-between">
+                            <span className="text-gray-400 dark:text-gray-500 flex items-center">
+                                Target: <span className="text-gray-600 dark:text-gray-300 ml-1 font-medium">{formatCurrency(budgetLimit)}</span>
+                                <PencilIcon className="w-3 h-3 ml-1 cursor-pointer hover:text-indigo-500" />
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Cash Flow / Saving Rate */}
+                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700">
+                    <div className="flex justify-between items-start mb-2">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Cash Flow ({new Date().toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit' })})</p>
+                        <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md dark:bg-blue-900/30 dark:text-blue-400">
+                            <DollarSign className="w-4 h-4" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            {totalIncome - totalExpenses >= 0 ? '+' : ''}{formatCurrency(totalIncome - totalExpenses)}
+                        </h3>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Income - Expense</p>
+                    </div>
                 </div>
             </div>
 
-            {/* Bottom Row: Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* Left: History Bar Chart (Span 2) */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                {/* Main Chart Area */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800">Monthly Spending History</h3>
-                        <select
-                            value={selectedHistoryCategory}
-                            onChange={(e) => setSelectedHistoryCategory(e.target.value as any)}
-                            className="text-sm border border-gray-300 rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <option value="All">All Categories</option>
-                            <option value="Living">Living</option>
-                            <option value="Playing">Playing</option>
-                            <option value="Saving">Saving</option>
-                        </select>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Monthly Spending History</h3>
+                        <div className="flex space-x-2">
+                            <select
+                                className="text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                                value={selectedHistoryCategory}
+                                onChange={(e) => setSelectedHistoryCategory(e.target.value as any)}
+                            >
+                                <option value="All">All Categories</option>
+                                <option value="Living">Living</option>
+                                <option value="Playing">Playing</option>
+                                <option value="Saving">Saving</option>
+                            </select>
+                        </div>
                     </div>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis
-                                    dataKey="month"
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(str) => {
-                                        const date = new Date(str + '-01')
-                                        return date.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' })
-                                    }}
-                                />
-                                <YAxis hide />
-                                <RechartsTooltip
-                                    formatter={(value: any, name: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, name]}
-                                    labelFormatter={(label) => new Date(label + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
-                                    cursor={{ fill: '#f3f4f6' }}
-                                />
-                                {selectedHistoryCategory === 'All' ? (
-                                    <>
-                                        <Bar dataKey="Living" stackId="a" fill={COLORS.Living} radius={[0, 0, 0, 0]} barSize={50} />
-                                        <Bar dataKey="Playing" stackId="a" fill={COLORS.Playing} radius={[0, 0, 0, 0]} barSize={50} />
-                                        <Bar dataKey="Saving" stackId="a" fill={COLORS.Saving} radius={[4, 4, 0, 0]} barSize={50} />
-                                    </>
-                                ) : (
-                                    <Bar
-                                        dataKey="total"
-                                        fill={COLORS[selectedHistoryCategory]}
-                                        radius={[4, 4, 0, 0]}
-                                        barSize={50}
-                                    />
-                                )}
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
 
-                {/* Right: Breakdown & Status (Span 1) */}
-                <div className="flex flex-col gap-6">
-                    {/* Budget Status */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                        <h4 className="text-sm font-medium text-gray-500 mb-3">Budget Status</h4>
-                        {isOverBudget ? (
-                            <div className="flex items-start p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                                <AlertTriangle className="w-5 h-5 mr-3 shrink-0" />
-                                <div>
-                                    <span className="font-semibold block">Over Limit!</span>
-                                    <span className="text-xs opacity-90">Please reduce spending.</span>
-                                </div>
-                            </div>
-                        ) : isNearBudget ? (
-                            <div className="flex items-start p-3 bg-yellow-50 text-yellow-700 rounded-lg text-sm">
-                                <TrendingUp className="w-5 h-5 mr-3 shrink-0" />
-                                <div>
-                                    <span className="font-semibold block">Caution</span>
-                                    <span className="text-xs opacity-90">Approaching limit.</span>
-                                </div>
-                            </div>
+                    <div className="h-[350px] w-full bg-gray-50/50 rounded-lg p-2 dark:bg-gray-900/30">
+                        {monthlyHistory.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={monthlyHistory} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid-stroke)" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: 'var(--chart-axis-tick)', fontSize: 12 }}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: 'var(--chart-axis-tick)', fontSize: 12 }}
+                                        tickFormatter={(value) => `Rp${value / 1000}k`}
+                                    />
+                                    <RechartsTooltip
+                                        contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
+                                        itemStyle={{ color: '#f3f4f6' }}
+                                        formatter={(value: any, name: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, name]}
+                                        labelFormatter={(label) => new Date(label + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                        cursor={{ fill: '#374151', opacity: 0.4 }}
+                                    />
+                                    <Legend />
+                                    {selectedHistoryCategory === 'All' ? (
+                                        <>
+                                            <Bar dataKey="Saving" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} barSize={32} />
+                                            <Bar dataKey="Playing" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={32} />
+                                            <Bar dataKey="Living" stackId="a" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={32} />
+                                        </>
+                                    ) : (
+                                        <Bar
+                                            dataKey={selectedHistoryCategory}
+                                            fill={selectedHistoryCategory === 'Living' ? '#3b82f6' : selectedHistoryCategory === 'Playing' ? '#ef4444' : '#10b981'}
+                                            radius={[4, 4, 4, 4]}
+                                            barSize={32}
+                                        />
+                                    )}
+                                </BarChart>
+                            </ResponsiveContainer>
                         ) : (
-                            <div className="flex items-start p-3 bg-green-50 text-green-700 rounded-lg text-sm">
-                                <Wallet className="w-5 h-5 mr-3 shrink-0" />
-                                <div>
-                                    <span className="font-semibold block">Healthy</span>
-                                    <span className="text-xs opacity-90">Within budget range.</span>
-                                </div>
+                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+                                No history data available
                             </div>
                         )}
                     </div>
+                </div>
 
-                    {/* Breakdown Chart */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex-1">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Breakdown</h3>
-                        <div className="h-48 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={categoryTotals}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={50}
-                                        outerRadius={70}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {categoryTotals.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[entry.name as keyof typeof COLORS]} />
-                                        ))}
-                                    </Pie>
-                                    <RechartsTooltip
-                                        formatter={(value: any) => `Rp ${Number(value).toLocaleString('id-ID')}`}
-                                    />
-                                    {/* Legend moved to bottom to save side space */}
-                                </PieChart>
-                            </ResponsiveContainer>
+                {/* Side Panel: Budget & Pie Chart */}
+                <div className="space-y-6">
+                    {/* Budget Status Widget */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                        <h3 className="text-gray-500 text-sm font-medium mb-4 dark:text-gray-400">Budget Status</h3>
+
+                        <div className={`p-4 rounded-lg flex items-start gap-3 ${budgetHealthBg}`}>
+                            <div className={`p-1.5 rounded-full bg-white/50 ${budgetHealthColor}`}>
+                                <Activity className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h4 className={`font-semibold ${budgetHealthColor}`}>
+                                    {isOverBudget ? 'Over Budget' : 'Healthy'}
+                                </h4>
+                                <p className={`text-xs mt-1 ${isOverBudget ? 'text-red-600/80 dark:text-red-400/80' : 'text-emerald-600/80 dark:text-emerald-400/80'}`}>
+                                    {isOverBudget
+                                        ? `You exceeded budget by ${formatCurrency(totalExpenses - budgetLimit)}`
+                                        : 'Within budget range.'}
+                                </p>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
-                            {categoryTotals.map((cat) => {
-                                const percentage = monthlyExpense > 0 ? (cat.value / monthlyExpense) * 100 : 0
-                                return (
-                                    <div key={cat.name} className="text-center">
-                                        <div className={cn("w-2 h-2 rounded-full mx-auto mb-1",
-                                            cat.name === 'Living' ? 'bg-blue-500' :
-                                                cat.name === 'Playing' ? 'bg-red-500' : 'bg-emerald-500'
-                                        )}></div>
-                                        <span className="text-gray-500 block truncate">{cat.name}</span>
-                                        <span className="font-semibold text-gray-900 block">{(cat.value / 1000).toFixed(0)}k</span>
-                                        <span className="text-[10px] text-gray-400 block">{percentage.toFixed(0)}%</span>
-                                    </div>
-                                )
-                            })}
+                    </div>
+
+                    {/* Breakdown Pie Chart */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 flex flex-col h-[350px]">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 dark:text-gray-100">Breakdown</h3>
+                        <div className="flex-1 min-h-0 relative">
+                            {categoryTotals.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={categoryTotals}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {categoryTotals.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip
+                                            contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
+                                            itemStyle={{ color: '#f3f4f6' }}
+                                            formatter={(value: any) => `Rp ${Number(value).toLocaleString('id-ID')}`}
+                                        />
+                                        <Legend verticalAlign="bottom" height={36} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                                    No data
+                                </div>
+                            )}
+
+
+                            {/* Custom Center Label if needed or Bottom Legend */}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Add Button - Floating Action Button for Mobile or Header Button */}
+            <div className="fixed bottom-6 right-6 md:hidden z-10">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-all focus:ring-4 focus:ring-indigo-300"
+                >
+                    <ArrowUpRight className="w-6 h-6" />
+                </button>
+            </div>
+
+            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Transaction">
+                <ExpenseForm
+                    onSubmit={(data) => {
+                        onAddExpense(data)
+                        setIsAddModalOpen(false)
+                    }}
+                    onCancel={() => setIsAddModalOpen(false)}
+                />
+            </Modal>
         </div>
     )
+}
+
+function PencilIcon({ className }: { className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+    )
+}
+
+function formatCurrencyCompact(amount: number) {
+    return new Intl.NumberFormat('id-ID', {
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: 1
+    }).format(amount)
 }

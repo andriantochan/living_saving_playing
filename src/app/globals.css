@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -15,5 +17,21 @@
   .no-spinner {
     appearance: textfield;
     -moz-appearance: textfield;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --foreground: 17 24 39;
+    --chart-grid-stroke: #374151;
+    --chart-axis-tick: #9CA3AF;
+  }
+
+  .dark {
+    --background: 17 24 39;
+    --foreground: 243 244 246;
+    --chart-grid-stroke: #ffffff;
+    --chart-axis-tick: #D1D5DB;
   }
 }

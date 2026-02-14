@@ -65,14 +65,14 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h3 className="text-lg font-semibold text-gray-800">Recent Transactions</h3>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Transactions</h3>
                 <div className="flex gap-2">
                     <select
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value as any)}
-                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     >
                         <option value="All">All Categories</option>
                         <option value="Income">Income</option>
@@ -83,7 +83,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                     <select
                         value={sortOrder}
                         onChange={(e) => setSortOrder(e.target.value as any)}
-                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     >
                         <option value="newest">Newest</option>
                         <option value="oldest">Oldest</option>
@@ -92,20 +92,20 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                     </select>
                 </div>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filteredExpenses.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         No expenses recorded yet. Start by adding one!
                     </div>
                 ) : (
                     filteredExpenses.map((expense) => (
-                        <div key={expense.id} className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between">
+                        <div key={expense.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                                 <div className={cn("p-2 rounded-full",
-                                    expense.category === 'Living' ? 'bg-blue-100 text-blue-600' :
-                                        expense.category === 'Playing' ? 'bg-red-100 text-red-600' :
-                                            expense.category === 'Saving' ? 'bg-emerald-100 text-emerald-600' :
-                                                'bg-amber-100 text-amber-600'
+                                    expense.category === 'Living' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                                        expense.category === 'Playing' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                                            expense.category === 'Saving' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                                'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
                                 )}>
                                     {expense.category === 'Living' && <Home className="w-5 h-5" />}
                                     {expense.category === 'Playing' && <Gamepad2 className="w-5 h-5" />}
@@ -113,8 +113,8 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                     {expense.category === 'Income' && <Banknote className="w-5 h-5" />}
                                 </div>
                                 <div>
-                                    <p className="font-medium text-gray-900">{expense.description || expense.category}</p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">{expense.description || expense.category}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
                                         {new Date(expense.date).toLocaleDateString('id-ID', {
                                             day: '2-digit',
                                             month: 'short',
@@ -128,8 +128,8 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                             </div>
                             <div className="flex items-center space-x-4">
                                 <span className={cn("font-semibold",
-                                    expense.category === 'Saving' ? 'text-emerald-600' :
-                                        expense.category === 'Income' ? 'text-amber-600' : 'text-gray-900'
+                                    expense.category === 'Saving' ? 'text-emerald-600 dark:text-emerald-400' :
+                                        expense.category === 'Income' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-gray-100'
                                 )}>
                                     {expense.category === 'Saving' || expense.category === 'Income' ? '+' : '-'} Rp {expense.amount.toLocaleString('id-ID')}
                                 </span>
@@ -156,5 +156,3 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
         </div>
     )
 }
-
-// End of file

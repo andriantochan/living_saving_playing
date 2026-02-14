@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { Dashboard } from '../components/Dashboard'
 import { ExpenseForm } from '../components/ExpenseForm'
 import { ExpenseList } from '../components/ExpenseList'
+import { ThemeToggle } from '../components/ThemeToggle'
+import { Modal } from '../components/Modal'
 import { PlusCircle, Wallet, Filter, Download } from 'lucide-react'
 
 // Define the type here or import from a shared types file
@@ -62,6 +64,60 @@ export default function Home() {
     return expenses.filter(e => e.date.startsWith(selectedMonth))
   }, [expenses, selectedMonth])
 
+  // derived state for totals
+  const { totalIncome, totalExpenses, balance } = useMemo(() => {
+    let income = 0
+    let expense = 0
+    let allTimeIncome = 0
+    let allTimeExpense = 0
+
+    expenses.forEach(e => {
+      const isIncome = e.category === 'Income'
+      if (isIncome) allTimeIncome += e.amount
+      else allTimeExpense += e.amount
+
+      if (e.date.startsWith(selectedMonth)) {
+        if (isIncome) income += e.amount
+        else expense += e.amount
+      }
+    })
+
+    return {
+      totalIncome: income,
+      totalExpenses: expense,
+      balance: allTimeIncome - allTimeExpense
+    }
+  }, [expenses, selectedMonth])
+
+  const handleAddExpense = async (data: Omit<Expense, 'id'>) => {
+    const { error } = await supabase.from('expenses').insert([data])
+    if (error) {
+      console.error('Error adding expense:', error)
+      alert('Failed to add expense')
+    } else {
+      fetchExpenses()
+      setShowForm(false)
+      setEditingExpense(null)
+    }
+  }
+
+  const handleUpdateExpense = async (data: Omit<Expense, 'id'>) => {
+    if (!editingExpense) return
+    const { error } = await supabase
+      .from('expenses')
+      .update(data)
+      .eq('id', editingExpense.id)
+
+    if (error) {
+      console.error('Error updating expense:', error)
+      alert('Failed to update expense')
+    } else {
+      fetchExpenses()
+      setShowForm(false)
+      setEditingExpense(null)
+    }
+  }
+
   const handleExport = () => {
     if (filteredExpenses.length === 0) return alert('No expenses to export')
 
@@ -70,7 +126,6 @@ export default function Home() {
       headers.join(','),
       ...filteredExpenses.map(exp => {
         const type = exp.category === 'Saving' ? 'Income' : 'Expense'
-        // Escape quotes and wrap in quotes to handle commas in description
         const desc = `"${(exp.description || '').replace(/"/g, '""')}"`
         return `${exp.date},${exp.category},${desc},${exp.amount},${type}`
       })
@@ -87,24 +142,27 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 font-sans">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div className="flex items-center space-x-3">
-            <div className="bg-indigo-600 p-2 rounded-lg">
+            <div className="bg-indigo-600 p-2 rounded-lg shadow-md">
               <Wallet className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Financial Tracker</h1>
-              <p className="text-sm text-gray-500">Living • Playing • Saving</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Financial Tracker</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Living • Playing • Saving</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Export CSV Button */}
             <button
               onClick={handleExport}
-              className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors shadow-sm h-10"
+              className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors shadow-sm h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
               title="Export to CSV"
             >
               <Download className="w-4 h-4" />
@@ -112,11 +170,11 @@ export default function Home() {
 
             {/* Month Filter Dropdown */}
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 appearance-none h-10 shadow-sm"
+                className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 appearance-none h-10 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
               >
                 {availableMonths.map(month => (
                   <option key={month} value={month}>
@@ -131,7 +189,7 @@ export default function Home() {
                 setShowForm(!showForm)
                 setEditingExpense(null)
               }}
-              className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm h-10 ml-auto md:ml-0"
+              className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm h-10 ml-auto md:ml-0 dark:bg-indigo-500 dark:hover:bg-indigo-600"
             >
               <PlusCircle className="w-5 h-5" />
               <span className="hidden sm:inline">{showForm && !editingExpense ? 'Hide' : 'Add'}</span>
@@ -141,31 +199,35 @@ export default function Home() {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Dashboard receives ALL expenses for historical chart, but uses selectedMonth for pie chart */}
-            <Dashboard expenses={expenses} selectedMonth={selectedMonth} />
+            <Dashboard
+              expenses={expenses}
+              onAddExpense={handleAddExpense}
+              totalIncome={totalIncome}
+              totalExpenses={totalExpenses}
+              balance={balance}
+            />
 
-            {showForm && (
-              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                  <ExpenseForm
-                    initialData={editingExpense}
-                    onAddExpense={() => {
-                      fetchExpenses()
-                      setShowForm(false)
-                      setEditingExpense(null)
-                    }}
-                    onCancel={() => {
-                      setShowForm(false)
-                      setEditingExpense(null)
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+            <Modal
+              isOpen={showForm}
+              onClose={() => {
+                setShowForm(false)
+                setEditingExpense(null)
+              }}
+              title={editingExpense ? 'Edit Expense' : 'Add New Expense'}
+            >
+              <ExpenseForm
+                initialData={editingExpense || undefined}
+                onSubmit={editingExpense ? handleUpdateExpense : handleAddExpense}
+                onCancel={() => {
+                  setShowForm(false)
+                  setEditingExpense(null)
+                }}
+              />
+            </Modal>
 
             <ExpenseList
               expenses={filteredExpenses}
