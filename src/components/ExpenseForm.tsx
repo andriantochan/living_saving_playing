@@ -74,99 +74,88 @@ export function ExpenseForm({ onSubmit, initialData, onCancel }: { onSubmit: (da
     }
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 relative dark:bg-gray-800 dark:border-gray-700">
-            {onCancel && (
-                <button
-                    onClick={onCancel}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 dark:hover:text-gray-200"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-            )}
-            <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">{initialData ? 'Edit Expense' : 'Add New Expense'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
-                    <div className="grid grid-cols-4 gap-2">
-                        {['Living', 'Playing', 'Saving', 'Income'].map((cat) => (
-                            <button
-                                type="button"
-                                key={cat}
-                                onClick={() => setCategory(cat as any)}
-                                className={cn(
-                                    "py-2 px-2 rounded-md text-xs sm:text-sm font-medium transition-colors border truncate",
-                                    category === cat
-                                        ? "bg-indigo-600 text-white border-indigo-600"
-                                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
-                                )}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
-                        {category === 'Living' && "Necessities: Food, rent, utilities, transport."}
-                        {category === 'Playing' && "Wants: Hobby, games, vacation, dining out."}
-                        {category === 'Saving' && "Future: Investments, emergency fund, savings."}
-                        {category === 'Income' && "Earnings: Salary, freelance, gifts."}
-                    </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
+                <div className="grid grid-cols-4 gap-2">
+                    {['Living', 'Playing', 'Saving', 'Income'].map((cat) => (
+                        <button
+                            type="button"
+                            key={cat}
+                            onClick={() => setCategory(cat as any)}
+                            className={cn(
+                                "py-2 px-2 rounded-md text-xs sm:text-sm font-medium transition-colors border truncate",
+                                category === cat
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+                            )}
+                        >
+                            {cat}
+                        </button>
+                    ))}
                 </div>
+                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
+                    {category === 'Living' && "Necessities: Food, rent, utilities, transport."}
+                    {category === 'Playing' && "Wants: Hobby, games, vacation, dining out."}
+                    {category === 'Saving' && "Future: Investments, emergency fund, savings."}
+                    {category === 'Income' && "Earnings: Salary, freelance, gifts."}
+                </p>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
-                        <input
-                            type="text"
-                            value={amount}
-                            onChange={(e) => {
-                                const value = e.target.value.replace(/\D/g, '')
-                                const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-                                setAmount(formatted)
-                            }}
-                            placeholder="e.g. 50.000"
-                            className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
-                        <input
-                            type="text"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="e.g. Steam Wallet, Nasi Goreng"
-                            className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                        />
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
                     <input
-                        type="datetime-local"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        type="text"
+                        value={amount}
+                        onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '')
+                            const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+                            setAmount(formatted)
+                        }}
+                        placeholder="e.g. 50.000"
+                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                        required
                     />
-                    <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use current time.</p>
                 </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
+                    <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="e.g. Steam Wallet, Nasi Goreng"
+                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                    />
+                </div>
+            </div>
 
-                {error && <p className="text-red-500 text-sm">{error}</p>}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
+                <input
+                    type="datetime-local"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use current time.</p>
+            </div>
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className={cn(
-                        "w-full flex items-center justify-center text-white font-medium py-2.5 rounded-lg transition-all focus:ring-4 disabled:opacity-70",
-                        initialData
-                            ? "bg-amber-500 hover:bg-amber-600 focus:ring-amber-200"
-                            : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-200 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-                    )}
-                >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : initialData ? <Save className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                    {initialData ? 'Update Transaction' : 'Add Transaction'}
-                </button>
-            </form>
-        </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <button
+                type="submit"
+                disabled={loading}
+                className={cn(
+                    "w-full flex items-center justify-center text-white font-medium py-2.5 rounded-lg transition-all focus:ring-4 disabled:opacity-70",
+                    initialData
+                        ? "bg-amber-500 hover:bg-amber-600 focus:ring-amber-200"
+                        : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-200 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                )}
+            >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : initialData ? <Save className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                {initialData ? 'Update Transaction' : 'Add Transaction'}
+            </button>
+        </form>
     )
 }
