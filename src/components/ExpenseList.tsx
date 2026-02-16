@@ -12,6 +12,9 @@ type Expense = {
     category: 'Living' | 'Playing' | 'Saving' | 'Income'
     description: string
     date: string
+    project_id?: string
+    user_id?: string
+    profiles?: any
 }
 
 export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[], onDelete: () => void, onEdit: (expense: Expense) => void }) {
@@ -98,65 +101,67 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         No expenses recorded yet. Start by adding one!
                     </div>
                 ) : (
-                    filteredExpenses.map((expense) => (
-                        <div key={expense.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                                <div className={cn("p-2 rounded-full",
-                                    expense.category === 'Living' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                                        expense.category === 'Playing' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                                            expense.category === 'Saving' ? (
-                                                expense.amount < 0
-                                                    ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
-                                                    : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            ) :
-                                                'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                                )}>
-                                    {expense.category === 'Living' && <Home className="w-5 h-5" />}
-                                    {expense.category === 'Playing' && <Gamepad2 className="w-5 h-5" />}
-                                    {expense.category === 'Saving' && <PiggyBank className="w-5 h-5" />}
-                                    {expense.category === 'Income' && <Banknote className="w-5 h-5" />}
+                    filteredExpenses.map((expense) => {
+                        const isIncome = expense.category === 'Income';
+                        const isLiving = expense.category === 'Living';
+                        const isPlaying = expense.category === 'Playing';
+                        const isSaving = expense.category === 'Saving';
+
+                        return (
+                            <div key={expense.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                        "p-2 rounded-lg",
+                                        isIncome ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" :
+                                            isLiving ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" :
+                                                isPlaying ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" :
+                                                    "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                    )}>
+                                        {isIncome && <Banknote className="w-5 h-5" />}
+                                        {isLiving && <Home className="w-5 h-5" />}
+                                        {isPlaying && <Gamepad2 className="w-5 h-5" />}
+                                        {isSaving && <PiggyBank className="w-5 h-5" />}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 dark:text-white">{expense.description}</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            {format(new Date(expense.date), 'MMM d, yyyy')} • {expense.category}
+                                            {expense.profiles && (
+                                                <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-300">
+                                                    Added by {expense.profiles.full_name || expense.profiles.username || 'Unknown'}
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-gray-100">{expense.description || expense.category}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {new Date(expense.date).toLocaleDateString('id-ID', {
-                                            day: '2-digit',
-                                            month: 'short',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit'
-                                        })} • {expense.category} {expense.category === 'Saving' && expense.amount < 0 ? '(Withdrawal)' : ''}
-                                    </p>
+                                <div className="flex items-center gap-4">
+                                    <span className={cn(
+                                        "font-semibold",
+                                        isIncome ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
+                                    )}>
+                                        {isIncome ? '+' : '-'}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(expense.amount)}
+                                    </span>
+                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => onEdit(expense)}
+                                            className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                            title="Edit"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(expense.id)}
+                                            disabled={deletingId === expense.id}
+                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-4">
-                                <span className={cn("font-semibold",
-                                    expense.category === 'Saving' ? (
-                                        expense.amount < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
-                                    ) :
-                                        expense.category === 'Income' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-gray-100'
-                                )}>
-                                    {expense.category === 'Income' || (expense.category === 'Saving' && expense.amount >= 0) ? '+' : '-'} Rp {Math.abs(expense.amount).toLocaleString('id-ID')}
-                                </span>
-                                <button
-                                    onClick={() => onEdit(expense)}
-                                    className="text-gray-400 hover:text-indigo-500 transition-colors p-1"
-                                    title="Edit"
-                                >
-                                    <Pencil className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(expense.id)}
-                                    disabled={deletingId === expense.id}
-                                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                                    title="Delete"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>
