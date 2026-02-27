@@ -20,13 +20,35 @@ type Expense = {
 export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[], onDelete: () => void, onEdit: (expense: Expense) => void }) {
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const [filterCategory, setFilterCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving' | 'Income'>('All')
+    const [filterUser, setFilterUser] = useState<string>('All')
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
+
+    const uniqueUsers = useMemo(() => {
+        const usersMap = new Map<string, string>()
+        expenses.forEach(exp => {
+            if (exp.user_id && exp.profiles) {
+                const name = exp.profiles.full_name || exp.profiles.username || 'Unknown'
+                usersMap.set(exp.user_id, name)
+            }
+        })
+        return Array.from(usersMap.entries()).map(([id, name]) => ({ id, name }))
+    }, [expenses])
 
     const filteredExpenses = useMemo(() => {
         let result = [...expenses]
 
-        // Filter
+        // Filter Category
         if (filterCategory !== 'All') {
+            result = result.filter(exp => exp.category === filterCategory)
+        }
+
+        // Filter User
+        if (filterUser !== 'All') {
+            result = result.filter(exp => exp.user_id === filterUser)
+        }
+
+        // Avoid empty else if block structure that is confusing
+        if (false) {
             result = result.filter(exp => exp.category === filterCategory)
         }
 
@@ -47,7 +69,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
         })
 
         return result
-    }, [expenses, filterCategory, sortOrder])
+    }, [expenses, filterCategory, filterUser, sortOrder])
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this expense?')) return
@@ -71,7 +93,17 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Transactions</h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                    <select
+                        value={filterUser}
+                        onChange={(e) => setFilterUser(e.target.value)}
+                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                    >
+                        <option value="All">All People</option>
+                        {uniqueUsers.map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                    </select>
                     <select
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value as any)}
