@@ -143,7 +143,7 @@ export default function Home() {
 
             if (project?.id) {
                 console.log('Redirecting to project:', project.id)
-                router.push(`/projects/${project.id}`)
+                router.push(`/project?id=${project.id}`)
             } else {
                 console.error("Created project but ID is missing:", project)
                 toast.error("Project created provided no ID")
@@ -236,10 +236,9 @@ export default function Home() {
                             <span className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Create New Project</span>
                         </button>
 
-                        {/* Project Cards */}
                         {projects.map((project) => (
                             <Link
-                                href={`/projects/${project.id}`}
+                                href={`/project?id=${project.id}`}
                                 key={project.id}
                                 className="flex flex-col h-auto min-h-[12rem] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:shadow-lg hover:border-indigo-500/50 dark:hover:border-indigo-500/50 transition-all group relative overflow-hidden"
                             >

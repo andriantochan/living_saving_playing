@@ -14,6 +14,7 @@ export default function LoginPage() {
     const [confirmPassword, setConfirmPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [isSignUp, setIsSignUp] = useState(false)
+    const [isForgotPassword, setIsForgotPassword] = useState(false)
     const router = useRouter()
 
     const handleAuth = async (e: React.FormEvent) => {
@@ -21,6 +22,21 @@ export default function LoginPage() {
         setLoading(true)
 
         try {
+            if (isForgotPassword) {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/update-password`,
+                })
+                if (error) {
+                    toast.error(error.message)
+                } else {
+                    toast.success('Password reset link sent to your email')
+                    setIsForgotPassword(false)
+                    setEmail('')
+                }
+                setLoading(false)
+                return
+            }
+
             if (isSignUp) {
                 // Sign Up Logic
                 if (password !== confirmPassword) {
@@ -42,7 +58,7 @@ export default function LoginPage() {
                     return
                 }
 
-                const { error } = await supabase.auth.signUp({
+                const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -54,6 +70,10 @@ export default function LoginPage() {
                 })
                 if (error) {
                     toast.error(error.message)
+                } else if (data?.session) {
+                    toast.success('Account created successfully!')
+                    router.push('/home')
+                    router.refresh()
                 } else {
                     toast.success('Account created! Please check your email to confirm.')
                     setIsSignUp(false)
@@ -100,23 +120,25 @@ export default function LoginPage() {
             <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
                 <div className="text-center">
                     <div className="mx-auto h-12 w-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mb-4">
-                        {isSignUp ? (
+                        {isForgotPassword ? (
+                            <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                        ) : isSignUp ? (
                             <UserPlus className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                         ) : (
                             <LogIn className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                         )}
                     </div>
                     <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-                        {isSignUp ? 'Create Account' : 'Welcome Back'}
+                        {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
                     </h2>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        {isSignUp ? 'Start tracking your financial goals' : 'Sign in to track your finances'}
+                        {isForgotPassword ? 'Enter your email to receive a reset link' : isSignUp ? 'Start tracking your financial goals' : 'Sign in to track your finances'}
                     </p>
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleAuth}>
                     <div className="space-y-4">
-                        {isSignUp && (
+                        {!isForgotPassword && isSignUp && (
                             <div>
                                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Full Name
@@ -134,8 +156,9 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {!isForgotPassword && (
+                            <div>
+                                <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Username
                             </label>
                             <div className="relative">
@@ -147,7 +170,7 @@ export default function LoginPage() {
                                     name="username"
                                     type="text"
                                     autoComplete="username"
-                                    required
+                                    required={!isForgotPassword}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
@@ -155,9 +178,10 @@ export default function LoginPage() {
                                 />
                             </div>
                         </div>
+                        )}
 
-                        {/* Email only needed for Sign Up */}
-                        {isSignUp && (
+                        {/* Email needed for Sign Up and Forgot Password */}
+                        {(isSignUp || isForgotPassword) && (
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Email address
@@ -171,7 +195,7 @@ export default function LoginPage() {
                                         name="email"
                                         type="email"
                                         autoComplete="email"
-                                        required={isSignUp}
+                                        required={isSignUp || isForgotPassword}
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
@@ -181,8 +205,9 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {!isForgotPassword && (
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Password
                             </label>
                             <div className="relative">
@@ -194,7 +219,7 @@ export default function LoginPage() {
                                     name="password"
                                     type="password"
                                     autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                                    required
+                                    required={!isForgotPassword}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
@@ -202,8 +227,9 @@ export default function LoginPage() {
                                 />
                             </div>
                         </div>
+                        )}
 
-                        {isSignUp && (
+                        {!isForgotPassword && isSignUp && (
                             <div>
                                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Confirm Password
@@ -228,7 +254,19 @@ export default function LoginPage() {
                         )}
                     </div>
 
-                    <div>
+                    {!isForgotPassword && !isSignUp && (
+                        <div className="flex items-center justify-end mt-2 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setIsForgotPassword(true)}
+                                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                            >
+                                Forgot your password?
+                            </button>
+                        </div>
+                    )}
+
+                    <div className={!isForgotPassword && !isSignUp ? "" : "mt-6"}>
                         <button
                             type="submit"
                             disabled={loading}
@@ -237,22 +275,37 @@ export default function LoginPage() {
                             {loading ? (
                                 <Loader2 className="animate-spin h-5 w-5" />
                             ) : (
-                                isSignUp ? 'Sign Up' : 'Sign In'
+                                isForgotPassword ? 'Send Reset Link' : isSignUp ? 'Sign Up' : 'Sign In'
                             )}
                         </button>
                     </div>
                 </form>
 
                 <div className="text-center mt-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-                        <button
-                            onClick={() => setIsSignUp(!isSignUp)}
-                            className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-                        >
-                            {isSignUp ? 'Sign in' : 'Sign up'}
-                        </button>
-                    </p>
+                    {isForgotPassword ? (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Remember your password?{' '}
+                            <button
+                                onClick={() => setIsForgotPassword(false)}
+                                className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                            >
+                                Sign in
+                            </button>
+                        </p>
+                    ) : (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                            <button
+                                onClick={() => {
+                                    setIsSignUp(!isSignUp)
+                                    setIsForgotPassword(false)
+                                }}
+                                className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                            >
+                                {isSignUp ? 'Sign in' : 'Sign up'}
+                            </button>
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

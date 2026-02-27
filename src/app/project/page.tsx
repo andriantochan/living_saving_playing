@@ -1,18 +1,17 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '../../../lib/supabase'
-import { Dashboard } from '../../../components/Dashboard'
-import { ExpenseForm } from '../../../components/ExpenseForm'
-import { ExpenseList } from '../../../components/ExpenseList'
-import { ThemeToggle } from '../../../components/ThemeToggle'
-import { Modal } from '../../../components/Modal'
+import { useEffect, useState, useMemo, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { supabase } from '../../lib/supabase'
+import { Dashboard } from '../../components/Dashboard'
+import { ExpenseForm } from '../../components/ExpenseForm'
+import { ExpenseList } from '../../components/ExpenseList'
+import { ThemeToggle } from '../../components/ThemeToggle'
+import { Modal } from '../../components/Modal'
 import { PlusCircle, Wallet, Filter, Download, LogOut, User, UserPlus, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-// Define the type here or import from a shared types file
 type Expense = {
     id: string
     amount: number
@@ -38,14 +37,10 @@ type UserProfile = {
     username: string | null
 }
 
-import { useParams } from 'next/navigation'
-
-// ... imports remain the same
-
-export default function ProjectPage() {
-    const params = useParams()
-    // Explicitly cast to string to handle string | string[] type from useParams
-    const id = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : null
+function ProjectContent() {
+    const searchParams = useSearchParams()
+    const id = searchParams.get('id')
+    const router = useRouter()
 
     const [expenses, setExpenses] = useState<Expense[]>([])
     const [loading, setLoading] = useState(true)
@@ -53,15 +48,14 @@ export default function ProjectPage() {
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [inviteEmail, setInviteEmail] = useState('')
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
-    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().substring(0, 7)) // YYYY-MM
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().substring(0, 7)) // YYYY-MM or 'all'
     const [currentProject, setCurrentProject] = useState<Project | null>(null)
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-    const router = useRouter()
 
     useEffect(() => {
         const init = async () => {
             // Validate ID
-            if (!params.id || params.id === 'undefined' || params.id.length < 30) {
+            if (!id || id === 'undefined' || id.length < 30) {
                 toast.error('Invalid Project ID')
                 router.push('/home')
                 return
@@ -87,7 +81,7 @@ export default function ProjectPage() {
                 .from('project_members')
                 .select('project_id, role, projects(name)')
                 .eq('user_id', session.user.id)
-                .eq('project_id', params.id)
+                .eq('project_id', id)
                 .single()
 
             if (member && member.projects) {
@@ -109,7 +103,7 @@ export default function ProjectPage() {
             }
         }
         init()
-    }, [params.id, router])
+    }, [id, router])
 
     const fetchExpenses = async (projectId: string) => {
         setLoading(true)
@@ -141,11 +135,12 @@ export default function ProjectPage() {
 
     // Filter expenses for the list
     const filteredExpenses = useMemo(() => {
+        if (selectedMonth === 'all') return expenses
         return expenses.filter(e => e.date.startsWith(selectedMonth))
     }, [expenses, selectedMonth])
 
     // derived state for totals
-    const { totalIncome, totalExpenses, balance, totalSavings } = useMemo(() => {
+    const { totalIncome, totalExpenses, balance, totalSavings, allTimeExpenses } = useMemo(() => {
         let income = 0
         let expense = 0
         let allTimeIncome = 0
@@ -162,7 +157,7 @@ export default function ProjectPage() {
 
             if (isSaving) allTimeSavings += amount
 
-            if (e.date.startsWith(selectedMonth)) {
+            if (selectedMonth === 'all' || e.date.startsWith(selectedMonth)) {
                 if (isIncome) income += amount
                 else expense += amount
             }
@@ -172,7 +167,8 @@ export default function ProjectPage() {
             totalIncome: income,
             totalExpenses: expense,
             balance: allTimeIncome - allTimeExpense,
-            totalSavings: allTimeSavings
+            totalSavings: allTimeSavings,
+            allTimeExpenses: allTimeExpense
         }
     }, [expenses, selectedMonth])
 
@@ -399,6 +395,7 @@ export default function ProjectPage() {
                                 onChange={(e) => setSelectedMonth(e.target.value)}
                                 className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 appearance-none h-10 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
                             >
+                                <option value="all">All Time</option>
                                 {availableMonths.map(month => (
                                     <option key={month} value={month}>
                                         {new Date(month + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
@@ -427,7 +424,7 @@ export default function ProjectPage() {
                 ) : (
                     <div className="space-y-6">
                         <Dashboard
-                            expenses={expenses}
+                            expenses={selectedMonth === 'all' ? expenses : expenses.filter(e => e.date.startsWith(selectedMonth))}
                             onAddExpense={handleAddExpense}
                             totalIncome={totalIncome}
                             totalExpenses={totalExpenses}
@@ -509,5 +506,13 @@ export default function ProjectPage() {
                 )}
             </div>
         </main>
+    )
+}
+
+export default function ProjectPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>}>
+            <ProjectContent />
+        </Suspense>
     )
 }
