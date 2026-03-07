@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { Loader2, Lock, Mail, UserPlus, LogIn, User } from 'lucide-react'
+import { Loader2, Lock, Mail, UserPlus, LogIn, User, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -12,6 +12,8 @@ export default function LoginPage() {
     const [password, setPassword] = useState('')
     const [fullName, setFullName] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [isSignUp, setIsSignUp] = useState(false)
     const [isForgotPassword, setIsForgotPassword] = useState(false)
@@ -159,25 +161,25 @@ export default function LoginPage() {
                         {!isForgotPassword && (
                             <div>
                                 <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Username
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <User className="h-5 w-5 text-gray-400" />
+                                    Username
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <User className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        id="username"
+                                        name="username"
+                                        type="text"
+                                        autoComplete="username"
+                                        required={!isForgotPassword}
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
+                                        placeholder="johndoe"
+                                    />
                                 </div>
-                                <input
-                                    id="username"
-                                    name="username"
-                                    type="text"
-                                    autoComplete="username"
-                                    required={!isForgotPassword}
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
-                                    placeholder="johndoe"
-                                />
                             </div>
-                        </div>
                         )}
 
                         {/* Email needed for Sign Up and Forgot Password */}
@@ -208,25 +210,36 @@ export default function LoginPage() {
                         {!isForgotPassword && (
                             <div>
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-gray-400" />
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                                        required={!isForgotPassword}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="block w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 focus:outline-none"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-5 w-5" aria-hidden="true" />
+                                        ) : (
+                                            <Eye className="h-5 w-5" aria-hidden="true" />
+                                        )}
+                                    </button>
                                 </div>
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                                    required={!isForgotPassword}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
-                                    placeholder="••••••••"
-                                />
                             </div>
-                        </div>
                         )}
 
                         {!isForgotPassword && isSignUp && (
@@ -241,14 +254,25 @@ export default function LoginPage() {
                                     <input
                                         id="confirmPassword"
                                         name="confirmPassword"
-                                        type="password"
+                                        type={showConfirmPassword ? 'text' : 'password'}
                                         autoComplete="new-password"
                                         required={isSignUp}
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
+                                        className="block w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-colors sm:text-sm"
                                         placeholder="••••••••"
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 focus:outline-none"
+                                    >
+                                        {showConfirmPassword ? (
+                                            <EyeOff className="h-5 w-5" aria-hidden="true" />
+                                        ) : (
+                                            <Eye className="h-5 w-5" aria-hidden="true" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         )}
