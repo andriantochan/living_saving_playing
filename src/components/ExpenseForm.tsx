@@ -7,20 +7,36 @@ import { cn } from '../lib/utils'
 type ExpenseFormData = {
     amount: number
     category: 'Living' | 'Playing' | 'Saving' | 'Income'
+    sub_category?: string
     description: string
     date: string
-    source?: 'Balance' | 'Saving'
+    source?: 'Balance' | 'Saving' | 'Credit Card'
+}
+
+const SUB_CATEGORIES: Record<string, string[]> = {
+    Living: ['Listrik', 'Uang Kos', 'Wifi', 'Bensin', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
+    Playing: ['Game', 'Langganan', 'Jalan-jalan', 'Hobi', 'Lainnya'],
+    Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
+    Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
 }
 
 export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 }: { onSubmit: (data: ExpenseFormData) => void, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number }) {
     const [amount, setAmount] = useState('')
     const [category, setCategory] = useState<'Living' | 'Playing' | 'Saving' | 'Income'>('Living')
+    const [subCategory, setSubCategory] = useState<string>('Makan') // Default first item
     const [isWithdrawal, setIsWithdrawal] = useState(false)
-    const [source, setSource] = useState<'Balance' | 'Saving'>('Balance')
+    const [source, setSource] = useState<'Balance' | 'Saving' | 'Credit Card'>('Balance')
     const [description, setDescription] = useState('')
     const [date, setDate] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+
+    // Reset sub category when main category changes
+    useEffect(() => {
+        if (!initialData) {
+            setSubCategory(SUB_CATEGORIES[category][0])
+        }
+    }, [category, initialData])
 
     useEffect(() => {
         if (initialData) {
@@ -32,12 +48,20 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
             } else {
                 setIsWithdrawal(false)
             }
+            if (initialData.sub_category) {
+                setSubCategory(initialData.sub_category)
+            } else {
+                setSubCategory(SUB_CATEGORIES[initialData.category][0])
+            }
             setDescription(initialData.description)
             // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
             const d = new Date(initialData.date)
             // Adjust to local ISO string roughly
             const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16)
             setDate(localIso)
+            if (initialData.source) {
+                setSource(initialData.source)
+            }
         } else {
             // Default source is Balance
             setSource('Balance')
@@ -84,6 +108,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
         onSubmit({
             amount: cleanAmount,
             category,
+            sub_category: subCategory,
             description,
             date: finalDate,
             source: (category === 'Living' || category === 'Playing') ? source : undefined
@@ -95,6 +120,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
             setDescription('')
             setDate('')
             setCategory('Living')
+            setSubCategory(SUB_CATEGORIES['Living'][0])
             setIsWithdrawal(false)
             setSource('Balance')
         }
@@ -166,11 +192,26 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
                     {category === 'Income' && "Earnings: Salary, freelance, gifts."}
                 </p>
 
+                {/* Sub Category Dropdown */}
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Sub Category</label>
+                    <select
+                        value={subCategory}
+                        onChange={(e) => setSubCategory(e.target.value)}
+                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        required
+                    >
+                        {SUB_CATEGORIES[category].map((subCat) => (
+                            <option key={subCat} value={subCat}>{subCat}</option>
+                        ))}
+                    </select>
+                </div>
+
                 {/* ID: Source Selection for Living/Playing */}
                 {(category === 'Living' || category === 'Playing') && (
                     <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-gray-400">Payment Source</label>
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                             <button
                                 type="button"
                                 onClick={() => setSource('Balance')}
@@ -199,6 +240,21 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
                                 <span className="flex items-center justify-center">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
                                     Savings ({totalSavings > 0 ? `Rp ${(totalSavings / 1000).toFixed(0)}k` : '0'})
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSource('Credit Card')}
+                                className={cn(
+                                    "flex-1 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all border",
+                                    source === 'Credit Card'
+                                        ? "bg-white text-orange-600 border-orange-500 shadow-sm ring-1 ring-orange-500 dark:bg-gray-700 dark:text-orange-400"
+                                        : "bg-gray-100 text-gray-500 border-transparent hover:bg-gray-200 dark:bg-gray-900/50 dark:text-gray-400 dark:hover:bg-gray-700"
+                                )}
+                            >
+                                <span className="flex items-center justify-center">
+                                    <span className="w-2 h-2 rounded-full bg-orange-500 mr-2"></span>
+                                    Credit Card
                                 </span>
                             </button>
                         </div>

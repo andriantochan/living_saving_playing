@@ -16,8 +16,10 @@ type Expense = {
     id: string
     amount: number
     category: 'Living' | 'Playing' | 'Saving' | 'Income'
+    sub_category?: string
     description: string
     date: string
+    source?: 'Balance' | 'Saving' | 'Credit Card'
     project_id?: string
     user_id?: string
     profiles?: {
@@ -140,39 +142,49 @@ function ProjectContent() {
     }, [expenses, selectedMonth])
 
     // derived state for totals
-    const { totalIncome, totalExpenses, balance, totalSavings, allTimeExpenses } = useMemo(() => {
+    const { totalIncome, totalExpenses, balance, totalSavings, allTimeExpenses, creditCardDebt } = useMemo(() => {
         let income = 0
         let expense = 0
         let allTimeIncome = 0
-        let allTimeExpense = 0
+        let allTimeWalletExpense = 0 // Expenses that actually cut balance
         let allTimeSavings = 0
+        let ccDebt = 0
 
         expenses.forEach(e => {
             const amount = Number(e.amount) || 0
             const isIncome = e.category === 'Income'
             const isSaving = e.category === 'Saving'
+            const isCC = e.source === 'Credit Card'
 
-            if (isIncome) allTimeIncome += amount
-            else allTimeExpense += amount
+            if (isIncome) {
+                allTimeIncome += amount
+            } else {
+                if (!isCC) {
+                    allTimeWalletExpense += amount
+                } else {
+                    ccDebt += amount
+                }
+            }
 
             if (isSaving) allTimeSavings += amount
 
             if (selectedMonth === 'all' || e.date.startsWith(selectedMonth)) {
                 if (isIncome) income += amount
-                else expense += amount
+                else expense += amount // UI total expense still includes CC
             }
         })
 
         return {
             totalIncome: income,
             totalExpenses: expense,
-            balance: allTimeIncome - allTimeExpense,
+            balance: allTimeIncome - allTimeWalletExpense,
             totalSavings: allTimeSavings,
-            allTimeExpenses: allTimeExpense
+            allTimeExpenses: allTimeWalletExpense + ccDebt,
+            creditCardDebt: ccDebt
         }
     }, [expenses, selectedMonth])
 
-    const handleAddExpense = async (data: Omit<Expense, 'id' | 'project_id' | 'user_id' | 'profiles'> & { source?: 'Balance' | 'Saving' }) => {
+    const handleAddExpense = async (data: Omit<Expense, 'id' | 'project_id' | 'user_id' | 'profiles'> & { source?: 'Balance' | 'Saving' | 'Credit Card' }) => {
         if (!currentProject) {
             toast.error('No active project found')
             return
@@ -185,8 +197,10 @@ function ProjectContent() {
             {
                 amount: data.amount,
                 category: data.category,
+                sub_category: data.sub_category,
                 description: data.description,
                 date: data.date,
+                source: data.source,
                 project_id: currentProject.id,
                 user_id: user.id // Keeping user_id for audit, specifically requested by schema too
             }
@@ -197,8 +211,10 @@ function ProjectContent() {
             expensesToInsert.push({
                 amount: -data.amount,
                 category: 'Saving',
+                sub_category: 'Lainnya',
                 description: `Cover for: ${data.description}`,
                 date: data.date,
+                source: undefined,
                 project_id: currentProject.id,
                 user_id: user.id
             })
@@ -224,8 +240,10 @@ function ProjectContent() {
             .update({
                 amount: data.amount,
                 category: data.category,
+                sub_category: data.sub_category,
                 description: data.description,
                 date: data.date,
+                source: data.source,
             })
             .eq('id', editingExpense.id)
             .eq('project_id', currentProject.id) // Security check
@@ -430,6 +448,7 @@ function ProjectContent() {
                             totalExpenses={totalExpenses}
                             balance={balance}
                             totalSavings={totalSavings}
+                            creditCardDebt={creditCardDebt}
                         />
 
                         <Modal

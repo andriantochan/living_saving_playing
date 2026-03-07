@@ -10,8 +10,10 @@ type Expense = {
     id: string
     amount: number
     category: 'Living' | 'Playing' | 'Saving' | 'Income'
+    sub_category?: string
     description: string
     date: string
+    source?: 'Balance' | 'Saving' | 'Credit Card'
     project_id?: string
     user_id?: string
     profiles?: any
@@ -20,8 +22,18 @@ type Expense = {
 export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[], onDelete: () => void, onEdit: (expense: Expense) => void }) {
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const [filterCategory, setFilterCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving' | 'Income'>('All')
+    const [filterSubCategory, setFilterSubCategory] = useState<string>('All')
     const [filterUser, setFilterUser] = useState<string>('All')
+    const [filterStartDate, setFilterStartDate] = useState<string>('')
+    const [filterEndDate, setFilterEndDate] = useState<string>('')
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
+
+    const SUB_CATEGORIES: Record<string, string[]> = {
+        Living: ['Listrik', 'Uang Kos', 'Wifi', 'Bensin', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
+        Playing: ['Game', 'Langganan', 'Jalan-jalan', 'Hobi', 'Lainnya'],
+        Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
+        Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
+    }
 
     const uniqueUsers = useMemo(() => {
         const usersMap = new Map<string, string>()
@@ -40,6 +52,11 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
         // Filter Category
         if (filterCategory !== 'All') {
             result = result.filter(exp => exp.category === filterCategory)
+
+            // Filter Sub Category
+            if (filterSubCategory !== 'All') {
+                result = result.filter(exp => exp.sub_category === filterSubCategory)
+            }
         }
 
         // Filter User
@@ -47,9 +64,13 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
             result = result.filter(exp => exp.user_id === filterUser)
         }
 
-        // Avoid empty else if block structure that is confusing
-        if (false) {
-            result = result.filter(exp => exp.category === filterCategory)
+        // Filter Date Range
+        if (filterStartDate) {
+            result = result.filter(exp => exp.date >= filterStartDate)
+        }
+        if (filterEndDate) {
+            // Include entire end date day by appending time if 'exp.date' is ISO string
+            result = result.filter(exp => exp.date <= filterEndDate + 'T23:59:59')
         }
 
         // Sort
@@ -69,7 +90,14 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
         })
 
         return result
-    }, [expenses, filterCategory, filterUser, sortOrder])
+    }, [expenses, filterCategory, filterSubCategory, filterUser, filterStartDate, filterEndDate, sortOrder])
+
+    const filteredTotal = useMemo(() => {
+        return filteredExpenses.reduce((total, exp) => {
+            const amount = exp.category === 'Income' ? exp.amount : -exp.amount;
+            return total + amount;
+        }, 0);
+    }, [filteredExpenses])
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this expense?')) return
@@ -92,7 +120,14 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Transactions</h3>
+                <div className="flex flex-col">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Transactions</h3>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
+                        Total: <span className={cn(
+                            filteredTotal > 0 ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
+                        )}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(filteredTotal))}</span>
+                    </p>
+                </div>
                 <div className="flex gap-2 flex-wrap">
                     <select
                         value={filterUser}
@@ -106,7 +141,10 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                     </select>
                     <select
                         value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value as any)}
+                        onChange={(e) => {
+                            setFilterCategory(e.target.value as any)
+                            setFilterSubCategory('All') // Reset sub category when parent changes
+                        }}
                         className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     >
                         <option value="All">All Categories</option>
@@ -115,6 +153,18 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         <option value="Playing">Playing</option>
                         <option value="Saving">Saving</option>
                     </select>
+                    {filterCategory !== 'All' && (
+                        <select
+                            value={filterSubCategory}
+                            onChange={(e) => setFilterSubCategory(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        >
+                            <option value="All">All Sub Categories</option>
+                            {SUB_CATEGORIES[filterCategory].map(sub => (
+                                <option key={sub} value={sub}>{sub}</option>
+                            ))}
+                        </select>
+                    )}
                     <select
                         value={sortOrder}
                         onChange={(e) => setSortOrder(e.target.value as any)}
@@ -125,6 +175,24 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         <option value="highest">Highest Amount</option>
                         <option value="lowest">Lowest Amount</option>
                     </select>
+
+                    <div className="flex items-center gap-1">
+                        <input
+                            type="date"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                            placeholder="Start Date"
+                        />
+                        <span className="text-gray-500 text-sm">-</span>
+                        <input
+                            type="date"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                            placeholder="End Date"
+                        />
+                    </div>
                 </div>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -158,6 +226,12 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                         <h4 className="font-medium text-gray-900 dark:text-white">{expense.description}</h4>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">
                                             {format(new Date(expense.date), 'MMM d, yyyy')} • {expense.category}
+                                            {expense.sub_category && <span className="mx-1">• {expense.sub_category}</span>}
+                                            {expense.source === 'Credit Card' && (
+                                                <span className="ml-2 text-[10px] uppercase tracking-wider bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">
+                                                    Credit Card
+                                                </span>
+                                            )}
                                             {expense.profiles && (
                                                 <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-300">
                                                     Added by {expense.profiles.full_name || expense.profiles.username || 'Unknown'}
