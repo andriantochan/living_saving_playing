@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns' // You might need to install date-fns or just use native Date
-import { Home, Gamepad2, PiggyBank, Trash2, Pencil, Banknote } from 'lucide-react'
+import { Home, Gamepad2, PiggyBank, Trash2, Pencil, Banknote, Calendar } from 'lucide-react'
 import { supabase } from '../lib/supabase' // Use global Client for deletion
 import { useState, useMemo } from 'react'
 import { cn } from '../lib/utils'
@@ -26,6 +26,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
     const [filterUser, setFilterUser] = useState<string>('All')
     const [filterStartDate, setFilterStartDate] = useState<string>('')
     const [filterEndDate, setFilterEndDate] = useState<string>('')
+    const [showDatePicker, setShowDatePicker] = useState(false)
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
 
     const SUB_CATEGORIES: Record<string, string[]> = {
@@ -128,7 +129,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         )}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(filteredTotal))}</span>
                     </p>
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide shrink-0">
                     <select
                         value={filterUser}
                         onChange={(e) => setFilterUser(e.target.value)}
@@ -176,22 +177,70 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         <option value="lowest">Lowest Amount</option>
                     </select>
 
-                    <div className="flex items-center gap-1">
-                        <input
-                            type="date"
-                            value={filterStartDate}
-                            onChange={(e) => setFilterStartDate(e.target.value)}
-                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                            placeholder="Start Date"
-                        />
-                        <span className="text-gray-500 text-sm">-</span>
-                        <input
-                            type="date"
-                            value={filterEndDate}
-                            onChange={(e) => setFilterEndDate(e.target.value)}
-                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                            placeholder="End Date"
-                        />
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setShowDatePicker(!showDatePicker)}
+                            className="flex items-center gap-2 text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 bg-white dark:bg-gray-800"
+                        >
+                            <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                            {filterStartDate || filterEndDate ? (
+                                <span>
+                                    {filterStartDate ? format(new Date(filterStartDate), 'dd MMM yy') : 'Start'}
+                                    <span className="mx-1.5 text-gray-400">-</span>
+                                    {filterEndDate ? format(new Date(filterEndDate), 'dd MMM yy') : 'End'}
+                                </span>
+                            ) : (
+                                <span className="text-gray-500">Select Date Range</span>
+                            )}
+                        </button>
+
+                        {showDatePicker && (
+                            <div className="absolute right-0 mt-2 p-4 bg-white shadow-xl border border-gray-100 rounded-xl z-20 flex flex-col gap-3 min-w-[240px] dark:bg-gray-800 dark:border-gray-700">
+                                <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider mb-1">Filter by Date</h4>
+
+                                <div className="space-y-3">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={filterStartDate}
+                                            onChange={(e) => setFilterStartDate(e.target.value)}
+                                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 w-full"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">End Date</label>
+                                        <input
+                                            type="date"
+                                            value={filterEndDate}
+                                            onChange={(e) => setFilterEndDate(e.target.value)}
+                                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 w-full"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2 justify-end mt-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFilterStartDate('');
+                                            setFilterEndDate('');
+                                        }}
+                                        className="text-xs font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 px-3 py-1.5 rounded-md transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDatePicker(false)}
+                                        className="text-xs font-medium bg-indigo-600 shadow-sm text-white px-4 py-1.5 rounded-md hover:bg-indigo-700 transition-colors dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                                    >
+                                        Apply
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
