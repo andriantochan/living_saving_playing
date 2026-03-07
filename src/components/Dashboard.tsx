@@ -12,9 +12,10 @@ type Expense = {
     category: 'Living' | 'Playing' | 'Saving' | 'Income'
     description: string
     date: string
+    source?: 'Balance' | 'Saving' | 'Credit Card'
 }
 
-export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance, totalSavings }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number }) {
+export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0 }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number }) {
     const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -101,7 +102,9 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                     </div>
                     <div className="space-y-1">
                         <h3 className="text-2xl font-bold tracking-tight">{formatCurrency(balance)}</h3>
-                        <p className="text-indigo-100 text-sm font-medium opacity-90">Net worth (All time)</p>
+                        <div className="flex justify-between items-center text-indigo-100 text-sm opacity-90">
+                            <span className="font-medium">Net worth</span>
+                        </div>
                     </div>
                 </div>
 
@@ -147,7 +150,14 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalExpenses)}</h3>
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalExpenses)}</h3>
+                            {creditCardDebt > 0 && (
+                                <span className="inline-block mt-1 bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-orange-200 dark:border-orange-800" title="Unpaid Credit Card Debt">
+                                    Credit Card: {formatCurrency(creditCardDebt)}
+                                </span>
+                            )}
+                        </div>
                         <div className="flex items-center text-xs justify-between">
                             <span className="text-gray-400 dark:text-gray-500 flex items-center">
                                 Target: <span className="text-gray-600 dark:text-gray-300 ml-1 font-medium">{formatCurrency(budgetLimit)}</span>
