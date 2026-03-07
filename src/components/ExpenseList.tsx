@@ -224,30 +224,37 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                     </div>
                                     <div>
                                         <h4 className="font-medium text-gray-900 dark:text-white">{expense.description}</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {format(new Date(expense.date), 'MMM d, yyyy')} • {expense.category}
-                                            {expense.sub_category && <span className="mx-1">• {expense.sub_category}</span>}
+                                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                            <span>{format(new Date(expense.date), 'MMM d, yyyy')}</span>
+                                            <span>•</span>
+                                            <span>{expense.category}</span>
+                                            {expense.sub_category && (
+                                                <>
+                                                    <span>•</span>
+                                                    <span>{expense.sub_category}</span>
+                                                </>
+                                            )}
                                             {expense.source === 'Credit Card' && (
-                                                <span className="ml-2 text-[10px] uppercase tracking-wider bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">
+                                                <span className="text-[9px] uppercase tracking-wider bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">
                                                     Credit Card
                                                 </span>
                                             )}
                                             {expense.profiles && (
-                                                <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-300">
+                                                <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-full text-xs text-gray-600 dark:text-gray-300">
                                                     Added by {expense.profiles.full_name || expense.profiles.username || 'Unknown'}
                                                 </span>
                                             )}
-                                        </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
+                                <div className="flex flex-col items-end gap-2 shrink-0">
                                     <span className={cn(
                                         "font-semibold",
                                         isIncome ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
                                     )}>
                                         {isIncome ? '+' : '-'}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(expense.amount)}
                                     </span>
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => onEdit(expense)}
                                             className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
