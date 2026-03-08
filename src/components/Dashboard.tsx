@@ -15,7 +15,7 @@ type Expense = {
     source?: 'Balance' | 'Saving' | 'Credit Card'
 }
 
-export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0 }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number }) {
+export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0, isSingleMonthView = false }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number, isSingleMonthView?: boolean }) {
     const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -153,7 +153,7 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                         <div>
                             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalExpenses)}</h3>
                             {creditCardDebt > 0 && (
-                                <span className="inline-block mt-1 bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-orange-200 dark:border-orange-800" title="Unpaid Credit Card Debt">
+                                <span className="inline-block mt-1 bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-orange-200 dark:border-orange-800" title="Total Credit Card Usage">
                                     Credit Card: {formatCurrency(creditCardDebt)}
                                 </span>
                             )}
@@ -205,7 +205,7 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                     <div className="h-[350px] w-full bg-gray-50/50 rounded-lg p-2 dark:bg-gray-900/30">
                         {monthlyHistory.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={monthlyHistory} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={monthlyHistory} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barGap={isSingleMonthView ? 16 : 0} barCategoryGap={isSingleMonthView ? '30%' : '10%'}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid-stroke)" />
                                     <XAxis
                                         dataKey="name"
@@ -230,16 +230,16 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                                     <Legend />
                                     {selectedHistoryCategory === 'All' ? (
                                         <>
-                                            <Bar dataKey="Saving" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} barSize={32} />
-                                            <Bar dataKey="Playing" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={32} />
-                                            <Bar dataKey="Living" stackId="a" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={32} />
+                                            <Bar dataKey="Living" stackId={isSingleMonthView ? undefined : "a"} fill="#3b82f6" radius={isSingleMonthView ? [4, 4, 0, 0] : [0, 0, 4, 4]} barSize={isSingleMonthView ? 40 : 32} />
+                                            <Bar dataKey="Playing" stackId={isSingleMonthView ? undefined : "a"} fill="#ef4444" radius={isSingleMonthView ? [4, 4, 0, 0] : [0, 0, 0, 0]} barSize={isSingleMonthView ? 40 : 32} />
+                                            <Bar dataKey="Saving" stackId={isSingleMonthView ? undefined : "a"} fill="#10b981" radius={[4, 4, 0, 0]} barSize={isSingleMonthView ? 40 : 32} />
                                         </>
                                     ) : (
                                         <Bar
                                             dataKey={selectedHistoryCategory}
                                             fill={selectedHistoryCategory === 'Living' ? '#3b82f6' : selectedHistoryCategory === 'Playing' ? '#ef4444' : '#10b981'}
                                             radius={[4, 4, 4, 4]}
-                                            barSize={32}
+                                            barSize={24}
                                         />
                                     )}
                                 </BarChart>

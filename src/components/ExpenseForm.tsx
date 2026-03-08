@@ -14,8 +14,8 @@ type ExpenseFormData = {
 }
 
 const SUB_CATEGORIES: Record<string, string[]> = {
-    Living: ['Listrik', 'Uang Kos', 'Wifi', 'Bensin', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
-    Playing: ['Game', 'Langganan', 'Jalan-jalan', 'Hobi', 'Lainnya'],
+    Living: ['Listrik', 'Uang Kos', 'Wifi', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
+    Playing: ['Fashion', 'Skincare/Makeup', 'Jalan-jalan', 'Jajan', 'Gym', 'Hobi', 'Langganan', 'Lainnya'],
     Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
     Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
 }

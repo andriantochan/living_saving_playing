@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns' // You might need to install date-fns or just use native Date
-import { Home, Gamepad2, PiggyBank, Trash2, Pencil, Banknote, ChevronDown, ChevronUp } from 'lucide-react'
+import { Home, Gamepad2, PiggyBank, Trash2, Pencil, Banknote, ChevronDown, ChevronUp, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase' // Use global Client for deletion
 import { useState, useMemo } from 'react'
 import { cn } from '../lib/utils'
@@ -26,12 +26,13 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
     const [filterUser, setFilterUser] = useState<string>('All')
     const [filterStartDate, setFilterStartDate] = useState<string>('')
     const [filterEndDate, setFilterEndDate] = useState<string>('')
+    const [searchQuery, setSearchQuery] = useState<string>('')
     const [showDatePicker, setShowDatePicker] = useState<boolean>(false)
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
 
     const SUB_CATEGORIES: Record<string, string[]> = {
-        Living: ['Listrik', 'Uang Kos', 'Wifi', 'Bensin', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
-        Playing: ['Game', 'Langganan', 'Jalan-jalan', 'Hobi', 'Lainnya'],
+        Living: ['Listrik', 'Uang Kos', 'Wifi', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
+        Playing: ['Fashion', 'Skincare/Makeup', 'Jalan-jalan', 'Jajan', 'Gym', 'Hobi', 'Langganan', 'Lainnya'],
         Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
         Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
     }
@@ -73,6 +74,12 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
             result = result.filter(exp => exp.date <= filterEndDate + 'T23:59:59')
         }
 
+        // Filter Search Query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase()
+            result = result.filter(exp => exp.description.toLowerCase().includes(query))
+        }
+
         // Sort
         result.sort((a, b) => {
             switch (sortOrder) {
@@ -90,7 +97,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
         })
 
         return result
-    }, [expenses, filterCategory, filterSubCategory, filterUser, filterStartDate, filterEndDate, sortOrder])
+    }, [expenses, filterCategory, filterSubCategory, filterUser, filterStartDate, filterEndDate, sortOrder, searchQuery])
 
     const filteredTotal = useMemo(() => {
         return filteredExpenses.reduce((total, exp) => {
@@ -224,6 +231,20 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                             </div>
                         )}
                     </div>
+                </div>
+            </div>
+
+            {/* Search Input Box - Below filters, above nominal/date headers */}
+            <div className="px-6 pb-4 pt-2 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+                <div className="relative w-full">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                    <input
+                        type="text"
+                        placeholder="Search by description..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 pr-4 py-2 w-full text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 shadow-sm transition-all"
+                    />
                 </div>
             </div>
 

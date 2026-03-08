@@ -449,6 +449,7 @@ function ProjectContent() {
                             balance={balance}
                             totalSavings={totalSavings}
                             creditCardDebt={creditCardDebt}
+                            isSingleMonthView={selectedMonth !== 'all'}
                         />
 
                         <Modal
