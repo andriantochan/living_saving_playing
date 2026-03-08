@@ -74,7 +74,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
         setLoading(true)
 
         // Validate amount
-        let cleanAmount = parseInt(amount.replace(/\./g, ''), 10)
+        let cleanAmount = parseInt(amount, 10)
         if (isNaN(cleanAmount) || cleanAmount <= 0) {
             setError('Please enter a valid amount')
             setLoading(false)
@@ -266,14 +266,12 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
                     <input
-                        type="text"
+                        type="number"
+                        min="1"
+                        step="1"
                         value={amount}
-                        onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '')
-                            const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-                            setAmount(formatted)
-                        }}
-                        placeholder="e.g. 50.000"
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="e.g. 50000"
                         className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                         required
                     />

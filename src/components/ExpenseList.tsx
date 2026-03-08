@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns' // You might need to install date-fns or just use native Date
-import { Home, Gamepad2, PiggyBank, Trash2, Pencil, Banknote } from 'lucide-react'
+import { Home, Gamepad2, PiggyBank, Trash2, Pencil, Banknote, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '../lib/supabase' // Use global Client for deletion
 import { useState, useMemo } from 'react'
 import { cn } from '../lib/utils'
@@ -26,6 +26,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
     const [filterUser, setFilterUser] = useState<string>('All')
     const [filterStartDate, setFilterStartDate] = useState<string>('')
     const [filterEndDate, setFilterEndDate] = useState<string>('')
+    const [showDatePicker, setShowDatePicker] = useState<boolean>(false)
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
 
     const SUB_CATEGORIES: Record<string, string[]> = {
@@ -69,7 +70,6 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
             result = result.filter(exp => exp.date >= filterStartDate)
         }
         if (filterEndDate) {
-            // Include entire end date day by appending time if 'exp.date' is ISO string
             result = result.filter(exp => exp.date <= filterEndDate + 'T23:59:59')
         }
 
@@ -94,7 +94,8 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
 
     const filteredTotal = useMemo(() => {
         return filteredExpenses.reduce((total, exp) => {
-            const amount = exp.category === 'Income' ? exp.amount : -exp.amount;
+            const isPositiveFlow = exp.category === 'Income' || (exp.category === 'Saving' && exp.amount < 0);
+            const amount = isPositiveFlow ? Math.abs(exp.amount) : -Math.abs(exp.amount);
             return total + amount;
         }, 0);
     }, [filteredExpenses])
@@ -119,8 +120,8 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex flex-col">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div className="flex flex-col shrink-0">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Transactions</h3>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
                         Total: <span className={cn(
@@ -128,7 +129,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         )}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(filteredTotal))}</span>
                     </p>
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap items-center xl:justify-end">
                     <select
                         value={filterUser}
                         onChange={(e) => setFilterUser(e.target.value)}
@@ -165,36 +166,92 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                             ))}
                         </select>
                     )}
-                    <select
-                        value={sortOrder}
-                        onChange={(e) => setSortOrder(e.target.value as any)}
-                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                    >
-                        <option value="newest">Newest</option>
-                        <option value="oldest">Oldest</option>
-                        <option value="highest">Highest Amount</option>
-                        <option value="lowest">Lowest Amount</option>
-                    </select>
+                    {filterCategory !== 'All' && (
+                        <div className="flex items-center gap-1">
+                            <span className="h-4 w-px bg-gray-300 dark:bg-gray-600 mx-1 hidden sm:block"></span>
+                        </div>
+                    )}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowDatePicker(!showDatePicker)}
+                            className="bg-white text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 min-w-[160px] text-left flex justify-between items-center transition-colors"
+                        >
+                            <span className="truncate pr-2">
+                                {filterStartDate && filterEndDate ? `${format(new Date(filterStartDate), 'dd MMM yyyy')} - ${format(new Date(filterEndDate), 'dd MMM yyyy')}` :
+                                    filterStartDate ? `From ${format(new Date(filterStartDate), 'dd MMM yyyy')}` :
+                                        filterEndDate ? `Until ${format(new Date(filterEndDate), 'dd MMM yyyy')}` :
+                                            "All Dates"}
+                            </span>
+                        </button>
 
-                    <div className="flex items-center gap-1">
-                        <input
-                            type="date"
-                            value={filterStartDate}
-                            onChange={(e) => setFilterStartDate(e.target.value)}
-                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                            placeholder="Start Date"
-                        />
-                        <span className="text-gray-500 text-sm">-</span>
-                        <input
-                            type="date"
-                            value={filterEndDate}
-                            onChange={(e) => setFilterEndDate(e.target.value)}
-                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                            placeholder="End Date"
-                        />
+                        {showDatePicker && (
+                            <div className="absolute right-0 mt-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 w-64 min-w-[280px]">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={filterStartDate}
+                                            onChange={(e) => setFilterStartDate(e.target.value)}
+                                            className="w-full text-sm border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">End Date</label>
+                                        <input
+                                            type="date"
+                                            value={filterEndDate}
+                                            min={filterStartDate}
+                                            onChange={(e) => setFilterEndDate(e.target.value)}
+                                            className="w-full text-sm border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="pt-3 mt-1 flex justify-between items-center border-t border-gray-100 dark:border-gray-700">
+                                        <button
+                                            onClick={() => { setFilterStartDate(''); setFilterEndDate(''); setShowDatePicker(false); }}
+                                            className="text-xs font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                        >
+                                            Reset
+                                        </button>
+                                        <button
+                                            onClick={() => setShowDatePicker(false)}
+                                            className="text-xs font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors shadow-sm"
+                                        >
+                                            Apply Range
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {/* Table Header for Sorting */}
+            {filteredExpenses.length > 0 && (
+                <div className="flex items-center justify-between px-6 py-3 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <button
+                        onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+                        className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors focus:outline-none"
+                    >
+                        INFO / TANGGAL
+                        {sortOrder === 'newest' && <ChevronDown className="w-3.5 h-3.5" />}
+                        {sortOrder === 'oldest' && <ChevronUp className="w-3.5 h-3.5" />}
+                        {(sortOrder !== 'newest' && sortOrder !== 'oldest') && <span className="w-3.5 h-3.5 opacity-0"></span>}
+                    </button>
+
+                    <button
+                        onClick={() => setSortOrder(sortOrder === 'highest' ? 'lowest' : 'highest')}
+                        className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors focus:outline-none"
+                    >
+                        NOMINAL
+                        {sortOrder === 'highest' && <ChevronDown className="w-3.5 h-3.5" />}
+                        {sortOrder === 'lowest' && <ChevronUp className="w-3.5 h-3.5" />}
+                        {(sortOrder !== 'highest' && sortOrder !== 'lowest') && <span className="w-3.5 h-3.5 opacity-0"></span>}
+                    </button>
+                </div>
+            )}
+
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filteredExpenses.length === 0 ? (
                     <div className="p-8 text-center text-gray-500 dark:text-gray-400">
@@ -250,9 +307,9 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                 <div className="flex flex-col items-end gap-2 shrink-0">
                                     <span className={cn(
                                         "font-semibold",
-                                        isIncome ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
+                                        (isIncome || (isSaving && expense.amount < 0)) ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
                                     )}>
-                                        {isIncome ? '+' : '-'}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(expense.amount)}
+                                        {(isIncome || (isSaving && expense.amount < 0)) ? '+' : '-'}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(expense.amount))}
                                     </span>
                                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
