@@ -170,7 +170,7 @@ function ProjectContent() {
 
             if (selectedMonth === 'all' || e.date.startsWith(selectedMonth)) {
                 if (isIncome) income += amount
-                else expense += amount // UI total expense still includes CC
+                else if (!isSaving) expense += amount // UI total expense still includes CC
             }
         })
 
@@ -449,6 +449,7 @@ function ProjectContent() {
                             balance={balance}
                             totalSavings={totalSavings}
                             creditCardDebt={creditCardDebt}
+                            isSingleMonthView={selectedMonth !== 'all'}
                         />
 
                         <Modal
