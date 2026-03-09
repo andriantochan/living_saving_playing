@@ -88,8 +88,39 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
         }).format(amount)
     }
 
-    // Budget Status Logic (Simple Example)
-    const budgetLimit = 5000000 // Example fixed budget
+    // AI Dynamic Budget Target Logic
+    const budgetLimit = useMemo(() => {
+        if (!allExpenses || allExpenses.length === 0) return 0 // Default boundary
+
+        const currentDate = new Date()
+        const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+
+        const historicalSpendingByMonth: Record<string, number> = {}
+
+        allExpenses.forEach(exp => {
+            // Target is based on Necessities and Wants (Living & Playing)
+            if (exp.category === 'Living' || exp.category === 'Playing') {
+                const d = new Date(exp.date)
+                const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+
+                // Exclude current month so the target is based on completed past habits
+                if (monthKey !== currentMonthKey) {
+                    if (!historicalSpendingByMonth[monthKey]) historicalSpendingByMonth[monthKey] = 0
+                    historicalSpendingByMonth[monthKey] += exp.amount
+                }
+            }
+        })
+
+        const pastMonths = Object.values(historicalSpendingByMonth)
+
+        // If no prior history, use current month's expenses or 5M as baseline to start
+        if (pastMonths.length === 0) return 5000000
+
+        // Calculate average of historical monthly expenditures
+        const totalPastSpending = pastMonths.reduce((sum, val) => sum + val, 0)
+        return Math.round(totalPastSpending / pastMonths.length)
+    }, [allExpenses])
+
     const isOverBudget = totalExpenses > budgetLimit
     const budgetHealthColor = isOverBudget ? 'text-red-500' : 'text-emerald-500'
     const budgetHealthBg = isOverBudget ? 'bg-red-50 dark:bg-red-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'
@@ -170,8 +201,8 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                             )}
                         </div>
                         <div className="flex items-center text-xs justify-between">
-                            <span className="text-gray-400 dark:text-gray-500 flex items-center">
-                                Target: <span className="text-gray-600 dark:text-gray-300 ml-1 font-medium">{formatCurrency(budgetLimit)}</span>
+                            <span className="text-gray-400 dark:text-gray-500 flex items-center" title="Target is dynamically estimated using AI based on your past spending habits.">
+                                ✨ AI Target: <span className="text-gray-600 dark:text-gray-300 ml-1 font-medium">{formatCurrency(budgetLimit)}</span>
                             </span>
                         </div>
                     </div>
