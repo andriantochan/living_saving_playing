@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { Dashboard } from '../../components/Dashboard'
 import { ExpenseForm } from '../../components/ExpenseForm'
 import { ExpenseList } from '../../components/ExpenseList'
+import { SavingGoalForm } from '../../components/SavingGoalForm'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { Modal } from '../../components/Modal'
 import { PlusCircle, Wallet, Filter, Download, LogOut, User, UserPlus, ArrowLeft } from 'lucide-react'
@@ -28,6 +29,15 @@ type Expense = {
     }
 }
 
+export type SavingGoal = {
+    id: string
+    project_id: string
+    name: string
+    sub_category: string
+    target_amount: number
+    current_amount: number
+}
+
 type Project = {
     id: string
     name: string
@@ -45,8 +55,10 @@ function ProjectContent() {
     const router = useRouter()
 
     const [expenses, setExpenses] = useState<Expense[]>([])
+    const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([])
     const [loading, setLoading] = useState(true)
     const [showForm, setShowForm] = useState(false)
+    const [showSavingGoalForm, setShowSavingGoalForm] = useState(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [inviteEmail, setInviteEmail] = useState('')
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
@@ -97,6 +109,7 @@ function ProjectContent() {
                     role: member.role as 'owner' | 'member'
                 })
                 fetchExpenses(member.project_id)
+                fetchSavingGoals(member.project_id)
             } else {
                 console.error('Project load error:', memberError)
                 // Redirect to home if not found or no access
@@ -126,6 +139,22 @@ function ProjectContent() {
             }
         }
         setLoading(false)
+    }
+
+    const fetchSavingGoals = async (projectId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('saving_goals')
+                .select('*')
+                .eq('project_id', projectId)
+                .order('name')
+
+            if (!error && data) {
+                setSavingGoals(data as SavingGoal[])
+            }
+        } catch (e) {
+            console.log('Saving goals table might not exist yet', e)
+        }
     }
 
     // Derived state for available months
@@ -256,6 +285,26 @@ function ProjectContent() {
             fetchExpenses(currentProject.id)
             setShowForm(false)
             setEditingExpense(null)
+        }
+    }
+
+    const handleAddSavingGoal = async (data: { name: string, sub_category: string, target_amount: number }) => {
+        if (!currentProject) return
+
+        const { error } = await supabase.from('saving_goals').insert({
+            project_id: currentProject.id,
+            name: data.name,
+            sub_category: data.sub_category,
+            target_amount: data.target_amount
+        })
+
+        if (error) {
+            console.error('Error adding saving goal:', error)
+            toast.error('Failed to add saving goal')
+        } else {
+            toast.success('Saving goal added successfully')
+            fetchSavingGoals(currentProject.id)
+            setShowSavingGoalForm(false)
         }
     }
 
@@ -442,6 +491,9 @@ function ProjectContent() {
                 ) : (
                     <div className="space-y-6">
                         <Dashboard
+                            allExpenses={expenses}
+                            savingGoals={savingGoals}
+                            onAddSavingGoal={() => setShowSavingGoalForm(true)}
                             expenses={selectedMonth === 'all' ? expenses : expenses.filter(e => e.date.startsWith(selectedMonth))}
                             onAddExpense={handleAddExpense}
                             totalIncome={totalIncome}
@@ -469,6 +521,17 @@ function ProjectContent() {
                                     setEditingExpense(null)
                                 }}
                                 totalSavings={totalSavings}
+                            />
+                        </Modal>
+
+                        <Modal
+                            isOpen={showSavingGoalForm}
+                            onClose={() => setShowSavingGoalForm(false)}
+                            title="Add New Saving Goal"
+                        >
+                            <SavingGoalForm
+                                onSubmit={handleAddSavingGoal}
+                                onCancel={() => setShowSavingGoalForm(false)}
                             />
                         </Modal>
 

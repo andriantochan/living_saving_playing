@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Legend } from 'recharts'
-import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign, PiggyBank } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign, PiggyBank, PlusCircle } from 'lucide-react'
+import { cn } from '../lib/utils'
 import { Modal } from './Modal'
 import { ExpenseForm } from './ExpenseForm'
 
@@ -10,12 +11,22 @@ type Expense = {
     id: string
     amount: number
     category: 'Living' | 'Playing' | 'Saving' | 'Income'
+    sub_category?: string
     description: string
     date: string
     source?: 'Balance' | 'Saving' | 'Credit Card'
 }
 
-export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0, isSingleMonthView = false }: { expenses: Expense[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number, isSingleMonthView?: boolean }) {
+export type SavingGoal = {
+    id: string
+    project_id: string
+    name: string
+    sub_category: string
+    target_amount: number
+    current_amount: number
+}
+
+export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddExpense, onAddSavingGoal, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0, isSingleMonthView = false }: { expenses: Expense[], allExpenses?: Expense[], savingGoals?: SavingGoal[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, onAddSavingGoal?: () => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number, isSingleMonthView?: boolean }) {
     const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
@@ -180,6 +191,62 @@ export function Dashboard({ expenses, onAddExpense, totalIncome, totalExpenses, 
                         </h3>
                         <p className="text-xs text-gray-400 dark:text-gray-500">Net this month</p>
                     </div>
+                </div>
+            </div>
+
+            {/* Saving Goals Row */}
+            <div className="grid grid-cols-1 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg dark:bg-emerald-900/30 dark:text-emerald-400">
+                                <PiggyBank className="w-5 h-5" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Saving Goals</h3>
+                        </div>
+                        {onAddSavingGoal && (
+                            <button
+                                onClick={onAddSavingGoal}
+                                className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40"
+                            >
+                                <PlusCircle className="w-4 h-4" />
+                                Add Goal
+                            </button>
+                        )}
+                    </div>
+
+                    {savingGoals.length === 0 ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                            No Saving Goals yet. Set a target today!
+                        </div>
+                    ) : (
+                        <div className="space-y-5">
+                            {savingGoals.map(goal => {
+                                // Dynamically calculate current_amount based on all historical expenses
+                                const currentSaved = allExpenses
+                                    .filter(e => e.category === 'Saving' && e.sub_category === goal.sub_category)
+                                    .reduce((sum, e) => sum + e.amount, 0)
+
+                                const percent = Math.min(100, Math.round((currentSaved / goal.target_amount) * 100))
+                                return (
+                                    <div key={goal.id} className="space-y-1.5">
+                                        <div className="flex justify-between text-sm items-end">
+                                            <span className="font-semibold text-gray-800 dark:text-gray-200">{goal.name}</span>
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                                {formatCurrency(currentSaved)} / {formatCurrency(goal.target_amount)}
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-gray-100 rounded-full h-3 dark:bg-gray-700 overflow-hidden border border-gray-200 dark:border-gray-600">
+                                            <div
+                                                className={cn("h-full rounded-full transition-all duration-1000", percent >= 100 ? "bg-emerald-500" : "bg-indigo-500")}
+                                                style={{ width: `${percent}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
 

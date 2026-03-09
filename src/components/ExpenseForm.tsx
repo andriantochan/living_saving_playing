@@ -13,14 +13,23 @@ type ExpenseFormData = {
     source?: 'Balance' | 'Saving' | 'Credit Card'
 }
 
-const SUB_CATEGORIES: Record<string, string[]> = {
+type SavingGoal = {
+    id: string
+    project_id: string
+    name: string
+    sub_category: string
+    target_amount: number
+    current_amount: number
+}
+
+const DEFAULT_SUB_CATEGORIES: Record<string, string[]> = {
     Living: ['Listrik', 'Uang Kos', 'Wifi', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
     Playing: ['Fashion', 'Skincare/Makeup', 'Jalan-jalan', 'Jajan', 'Gym', 'Hobi', 'Langganan', 'Lainnya'],
     Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
     Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
 }
 
-export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 }: { onSubmit: (data: ExpenseFormData) => void, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number }) {
+export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0, savingGoals = [] }: { onSubmit: (data: ExpenseFormData) => void, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number, savingGoals?: SavingGoal[] }) {
     const [amount, setAmount] = useState('')
     const [category, setCategory] = useState<'Living' | 'Playing' | 'Saving' | 'Income'>('Living')
     const [subCategory, setSubCategory] = useState<string>('Makan') // Default first item
@@ -31,12 +40,16 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
+    const subCategories: Record<string, string[]> = {
+        ...DEFAULT_SUB_CATEGORIES
+    }
+
     // Reset sub category when main category changes
     useEffect(() => {
         if (!initialData) {
-            setSubCategory(SUB_CATEGORIES[category][0])
+            setSubCategory(subCategories[category][0])
         }
-    }, [category, initialData])
+    }, [category, initialData, savingGoals])
 
     useEffect(() => {
         if (initialData) {
@@ -51,7 +64,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
             if (initialData.sub_category) {
                 setSubCategory(initialData.sub_category)
             } else {
-                setSubCategory(SUB_CATEGORIES[initialData.category][0])
+                setSubCategory(subCategories[initialData.category][0])
             }
             setDescription(initialData.description)
             // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
@@ -120,7 +133,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
             setDescription('')
             setDate('')
             setCategory('Living')
-            setSubCategory(SUB_CATEGORIES['Living'][0])
+            setSubCategory(subCategories['Living'][0])
             setIsWithdrawal(false)
             setSource('Balance')
         }
@@ -201,7 +214,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0 
                         className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     >
-                        {SUB_CATEGORIES[category].map((subCat) => (
+                        {subCategories[category].map((subCat) => (
                             <option key={subCat} value={subCat}>{subCat}</option>
                         ))}
                     </select>
