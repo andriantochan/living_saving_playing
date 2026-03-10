@@ -47,9 +47,9 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
     // Reset sub category when main category changes
     useEffect(() => {
         if (!initialData) {
-            setSubCategory(subCategories[category][0])
+            setSubCategory(DEFAULT_SUB_CATEGORIES[category][0])
         }
-    }, [category, initialData, savingGoals])
+    }, [category, initialData])
 
     useEffect(() => {
         if (initialData) {

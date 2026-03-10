@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Legend } from 'recharts'
-import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign, PiggyBank, PlusCircle } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign, PiggyBank, PlusCircle, Eye, EyeOff } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Modal } from './Modal'
 import { ExpenseForm } from './ExpenseForm'
@@ -29,6 +29,8 @@ export type SavingGoal = {
 export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddExpense, onAddSavingGoal, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0, isSingleMonthView = false }: { expenses: Expense[], allExpenses?: Expense[], savingGoals?: SavingGoal[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, onAddSavingGoal?: () => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number, isSingleMonthView?: boolean }) {
     const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isBalanceHidden, setIsBalanceHidden] = useState(true)
+    const [isSavedHidden, setIsSavedHidden] = useState(true)
 
     // Calculate totals per category for Pie Chart
     const categoryTotals = useMemo(() => {
@@ -140,10 +142,15 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                             <Wallet className="w-6 h-6" />
                         </div>
-                        <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Total Balance</span>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsBalanceHidden(!isBalanceHidden)} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors focus:outline-none" title={isBalanceHidden ? "Show Balance" : "Hide Balance"}>
+                                {isBalanceHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Total Balance</span>
+                        </div>
                     </div>
                     <div className="space-y-1">
-                        <h3 className="text-2xl font-bold tracking-tight">{formatCurrency(balance)}</h3>
+                        <h3 className="text-2xl font-bold tracking-tight">{isBalanceHidden ? 'Rp •••••••' : formatCurrency(balance)}</h3>
                         <div className="flex justify-between items-center text-indigo-100 text-sm opacity-90">
                             <span className="font-medium">Net worth</span>
                         </div>
@@ -156,10 +163,15 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                             <PiggyBank className="w-6 h-6" />
                         </div>
-                        <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Total Saved</span>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsSavedHidden(!isSavedHidden)} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors focus:outline-none" title={isSavedHidden ? "Show Savings" : "Hide Savings"}>
+                                {isSavedHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Total Saved</span>
+                        </div>
                     </div>
                     <div className="space-y-1">
-                        <h3 className="text-2xl font-bold tracking-tight">{formatCurrency(totalSavings)}</h3>
+                        <h3 className="text-2xl font-bold tracking-tight">{isSavedHidden ? 'Rp •••••••' : formatCurrency(totalSavings)}</h3>
                         <p className="text-emerald-100 text-sm font-medium opacity-90">Accumulated Savings</p>
                     </div>
                 </div>
