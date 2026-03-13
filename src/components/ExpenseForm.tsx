@@ -23,7 +23,7 @@ type SavingGoal = {
 }
 
 const DEFAULT_SUB_CATEGORIES: Record<string, string[]> = {
-    Living: ['Listrik', 'Uang Kos', 'Wifi', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
+    Living: ['Makan', 'Groceries', 'Laundry', 'Wifi', 'Listrik', 'Uang Kos', 'Transport', 'Lainnya'],
     Playing: ['Fashion', 'Skincare/Makeup', 'Jalan-jalan', 'Jajan', 'Gym', 'Hobi', 'Langganan', 'Lainnya'],
     Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
     Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
@@ -67,11 +67,10 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 setSubCategory(subCategories[initialData.category][0])
             }
             setDescription(initialData.description)
-            // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
+            // Format date for date input (YYYY-MM-DD)
             const d = new Date(initialData.date)
-            // Adjust to local ISO string roughly
-            const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16)
-            setDate(localIso)
+            const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+            setDate(localDate)
             if (initialData.source) {
                 setSource(initialData.source)
             }
@@ -116,7 +115,8 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
         // Simulate network delay for UX
         await new Promise(resolve => setTimeout(resolve, 500))
 
-        const finalDate = date ? new Date(date).toISOString() : new Date().toISOString()
+        // Use noon (12:00) to avoid timezone date shifting issues
+        const finalDate = date ? new Date(`${date}T12:00:00`).toISOString() : new Date().toISOString()
 
         onSubmit({
             amount: cleanAmount,
@@ -304,12 +304,12 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
                 <input
-                    type="datetime-local"
+                    type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
-                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use current time.</p>
+                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use today's date.</p>
             </div>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}

@@ -137,10 +137,10 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Wallet Balance */}
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg transform transition-all hover:scale-[1.02]">
-                    <div className="flex justify-between items-start mb-4">
+                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 sm:p-6 text-white shadow-lg transform transition-all hover:scale-[1.02]">
+                    <div className="flex justify-between items-start mb-3 sm:mb-4">
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <Wallet className="w-6 h-6" />
+                            <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setIsBalanceHidden(!isBalanceHidden)} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors focus:outline-none" title={isBalanceHidden ? "Show Balance" : "Hide Balance"}>
@@ -150,7 +150,7 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <h3 className="text-2xl font-bold tracking-tight">{isBalanceHidden ? 'Rp •••••••' : formatCurrency(balance)}</h3>
+                        <h3 className="text-lg sm:text-2xl font-bold tracking-tight truncate">{isBalanceHidden ? 'Rp •••••••' : formatCurrency(balance)}</h3>
                         <div className="flex justify-between items-center text-indigo-100 text-sm opacity-90">
                             <span className="font-medium">Net worth</span>
                         </div>
@@ -158,10 +158,10 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                 </div>
 
                 {/* Total Savings - NEW CARD */}
-                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg transform transition-all hover:scale-[1.02]">
-                    <div className="flex justify-between items-start mb-4">
+                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 sm:p-6 text-white shadow-lg transform transition-all hover:scale-[1.02]">
+                    <div className="flex justify-between items-start mb-3 sm:mb-4">
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <PiggyBank className="w-6 h-6" />
+                            <PiggyBank className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => setIsSavedHidden(!isSavedHidden)} className="text-white/70 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors focus:outline-none" title={isSavedHidden ? "Show Savings" : "Hide Savings"}>
@@ -171,13 +171,13 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <h3 className="text-2xl font-bold tracking-tight">{isSavedHidden ? 'Rp •••••••' : formatCurrency(totalSavings)}</h3>
+                        <h3 className="text-lg sm:text-2xl font-bold tracking-tight truncate">{isSavedHidden ? 'Rp •••••••' : formatCurrency(totalSavings)}</h3>
                         <p className="text-emerald-100 text-sm font-medium opacity-90">Accumulated Savings</p>
                     </div>
                 </div>
 
                 {/* Income Card */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
                     <div className="flex justify-between items-start mb-2">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Income ({new Date().toLocaleDateString('id-ID', { year: '2-digit', month: '2-digit' })})</p>
                         <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-md dark:bg-emerald-900/30 dark:text-emerald-400">
@@ -185,7 +185,7 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalIncome)}</h3>
+                        <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{formatCurrency(totalIncome)}</h3>
                         <div className="flex items-center text-xs">
                             <span className="text-emerald-600 font-medium flex items-center dark:text-emerald-400">
                                 <TrendingUp className="w-3 h-3 mr-1" /> +{incomeGrowth}%
@@ -196,7 +196,7 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                 </div>
 
                 {/* Expenses Card */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-all hover:shadow-md">
                     <div className="flex justify-between items-start mb-2">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Expenses ({new Date().toLocaleDateString('id-ID', { year: '2-digit', month: '2-digit' })})</p>
                         <div className="p-1.5 bg-red-100 text-red-600 rounded-md dark:bg-red-900/30 dark:text-red-400">
@@ -205,7 +205,7 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                     </div>
                     <div className="space-y-2">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalExpenses)}</h3>
+                            <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">{formatCurrency(totalExpenses)}</h3>
                             {creditCardDebt > 0 && (
                                 <span className="inline-block mt-1 bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-orange-200 dark:border-orange-800" title="Total Credit Card Usage">
                                     Credit Card: {formatCurrency(creditCardDebt)}
@@ -221,7 +221,7 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                 </div>
 
                 {/* Cash Flow / Saving Rate */}
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700">
+                <div className="bg-gray-50 p-4 sm:p-6 rounded-xl border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700">
                     <div className="flex justify-between items-start mb-2">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Cash Flow</p>
                         <div className="p-1.5 bg-blue-100 text-blue-600 rounded-md dark:bg-blue-900/30 dark:text-blue-400">
@@ -229,7 +229,7 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                        <h3 className="text-base sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">
                             {totalIncome - totalExpenses >= 0 ? '+' : ''}{formatCurrency(totalIncome - totalExpenses)}
                         </h3>
                         <p className="text-xs text-gray-400 dark:text-gray-500">Net this month</p>
@@ -273,9 +273,9 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                                 const percent = Math.min(100, Math.round((currentSaved / goal.target_amount) * 100))
                                 return (
                                     <div key={goal.id} className="space-y-1.5">
-                                        <div className="flex justify-between text-sm items-end">
-                                            <span className="font-semibold text-gray-800 dark:text-gray-200">{goal.name}</span>
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                        <div className="flex justify-between text-sm items-end gap-2">
+                                            <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">{goal.name}</span>
+                                            <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded shrink-0 whitespace-nowrap">
                                                 {formatCurrency(currentSaved)} / {formatCurrency(goal.target_amount)}
                                             </span>
                                         </div>
@@ -296,11 +296,11 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Chart Area */}
                 <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Monthly Spending History</h3>
                         <div className="flex space-x-2">
                             <select
-                                className="text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                                className="w-full sm:w-auto text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 value={selectedHistoryCategory}
                                 onChange={(e) => setSelectedHistoryCategory(e.target.value as any)}
                             >

@@ -395,72 +395,70 @@ function ProjectContent() {
     return (
         <main className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
             <div className="max-w-5xl mx-auto px-4 py-8">
-                <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-                    <div className="flex items-center space-x-3">
-                        <Link href="/home" className="mr-2 p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors">
-                            <ArrowLeft className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                        </Link>
-                        <div className="bg-indigo-600 p-2 rounded-lg shadow-md">
-                            <Wallet className="w-6 h-6 text-white" />
+                <header className="flex flex-col mb-8 gap-3">
+                    {/* Row 1: Brand + Title */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <Link href="/home" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors">
+                                <ArrowLeft className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                            </Link>
+                            <div className="bg-indigo-600 p-2 rounded-lg shadow-md">
+                                <Wallet className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Financial Tracker</h1>
+                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                    <span className="truncate max-w-[120px] sm:max-w-none">{currentProject ? currentProject.name : 'Loading...'}</span>
+                                    {userProfile && (
+                                        <>
+                                            <span className="w-1 h-1 bg-gray-400 rounded-full shrink-0"></span>
+                                            <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium truncate">
+                                                <User className="w-3 h-3 shrink-0" />
+                                                <span className="truncate max-w-[80px] sm:max-w-none">{userProfile.full_name || userProfile.username}</span>
+                                            </span>
+                                        </>
+                                    )}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Financial Tracker</h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                                <span>{currentProject ? currentProject.name : 'Loading project...'}</span>
-                                {userProfile && (
-                                    <>
-                                        <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-                                        <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium">
-                                            <User className="w-3 h-3" />
-                                            {userProfile.full_name || userProfile.username}
-                                        </span>
-                                    </>
-                                )}
-                            </p>
+
+                        {/* Utility buttons group */}
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 focus:outline-none transition-colors shadow-sm h-9 w-9 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                                title="Sign Out"
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none transition-colors shadow-sm h-9 w-9 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                                title="Export to CSV"
+                            >
+                                <Download className="w-4 h-4" />
+                            </button>
+                            {currentProject?.role === 'owner' && (
+                                <button
+                                    onClick={() => setShowInviteModal(true)}
+                                    className="flex items-center justify-center p-2 text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 focus:outline-none transition-colors shadow-sm h-9 w-9 dark:bg-gray-800 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+                                    title="Add Member"
+                                >
+                                    <UserPlus className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        {/* Theme Toggle */}
-                        <ThemeToggle />
-
-                        {/* Logout Button */}
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 focus:outline-none focus:ring-2 focus:ring-red-200 transition-colors shadow-sm h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                            title="Sign Out"
-                        >
-                            <LogOut className="w-4 h-4" />
-                        </button>
-
-                        {/* Export CSV Button */}
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors shadow-sm h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
-                            title="Export to CSV"
-                        >
-                            <Download className="w-4 h-4" />
-                        </button>
-
-                        {/* Invite Button - visible to Owner */}
-                        {currentProject?.role === 'owner' && (
-                            <button
-                                onClick={() => setShowInviteModal(true)}
-                                className="flex items-center justify-center p-2 text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-colors shadow-sm h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
-                                title="Add Member"
-                            >
-                                <UserPlus className="w-4 h-4" />
-                            </button>
-                        )}
-
-
-                        {/* Month Filter Dropdown */}
-                        <div className="relative">
+                    {/* Row 2: Month filter + Add button */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1 sm:flex-none">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                             <select
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 appearance-none h-10 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                                className="w-full sm:w-auto pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 appearance-none h-9 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
                             >
                                 <option value="all">All Time</option>
                                 {availableMonths.map(month => (
@@ -470,16 +468,15 @@ function ProjectContent() {
                                 ))}
                             </select>
                         </div>
-
                         <button
                             onClick={() => {
                                 setShowForm(!showForm)
                                 setEditingExpense(null)
                             }}
-                            className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm h-10 ml-auto md:ml-0 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm h-9 dark:bg-indigo-500 dark:hover:bg-indigo-600 whitespace-nowrap"
                         >
-                            <PlusCircle className="w-5 h-5" />
-                            <span className="hidden sm:inline">{showForm && !editingExpense ? 'Hide' : 'Add'}</span>
+                            <PlusCircle className="w-4 h-4" />
+                            <span>{showForm && !editingExpense ? 'Hide' : 'Add'}</span>
                         </button>
                     </div>
                 </header>

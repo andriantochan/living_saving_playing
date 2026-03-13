@@ -31,7 +31,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
 
     const SUB_CATEGORIES: Record<string, string[]> = {
-        Living: ['Listrik', 'Uang Kos', 'Wifi', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
+        Living: ['Makan', 'Groceries', 'Laundry', 'Wifi', 'Listrik', 'Uang Kos', 'Transport', 'Lainnya'],
         Playing: ['Fashion', 'Skincare/Makeup', 'Jalan-jalan', 'Jajan', 'Gym', 'Hobi', 'Langganan', 'Lainnya'],
         Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
         Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
@@ -127,20 +127,23 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden dark:bg-gray-800 dark:border-gray-700">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                <div className="flex flex-col shrink-0">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Transactions</h3>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
-                        Total: <span className={cn(
-                            filteredTotal > 0 ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
-                        )}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(filteredTotal))}</span>
-                    </p>
+            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                    <div className="flex flex-col shrink-0">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Transactions</h3>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
+                            Total: <span className={cn(
+                                filteredTotal > 0 ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
+                            )}>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(filteredTotal))}</span>
+                        </p>
+                    </div>
                 </div>
-                <div className="flex gap-2 flex-wrap items-center xl:justify-end">
+                {/* Filter Controls: 2-col grid on mobile, wrap on larger screens */}
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-center">
                     <select
                         value={filterUser}
                         onChange={(e) => setFilterUser(e.target.value)}
-                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 col-span-1"
                     >
                         <option value="All">All People</option>
                         {uniqueUsers.map(u => (
@@ -153,7 +156,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                             setFilterCategory(e.target.value as any)
                             setFilterSubCategory('All') // Reset sub category when parent changes
                         }}
-                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                        className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 col-span-1"
                     >
                         <option value="All">All Categories</option>
                         <option value="Income">Income</option>
@@ -165,7 +168,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         <select
                             value={filterSubCategory}
                             onChange={(e) => setFilterSubCategory(e.target.value)}
-                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                            className="text-sm border border-gray-300 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 col-span-2 sm:col-span-1"
                         >
                             <option value="All">All Sub Categories</option>
                             {SUB_CATEGORIES[filterCategory].map(sub => (
@@ -173,15 +176,10 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                             ))}
                         </select>
                     )}
-                    {filterCategory !== 'All' && (
-                        <div className="flex items-center gap-1">
-                            <span className="h-4 w-px bg-gray-300 dark:bg-gray-600 mx-1 hidden sm:block"></span>
-                        </div>
-                    )}
-                    <div className="relative">
+                    <div className="relative col-span-2 sm:col-span-1">
                         <button
                             onClick={() => setShowDatePicker(!showDatePicker)}
-                            className="bg-white text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 min-w-[160px] text-left flex justify-between items-center transition-colors"
+                            className="w-full bg-white text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 text-left flex justify-between items-center transition-colors"
                         >
                             <span className="truncate pr-2">
                                 {filterStartDate && filterEndDate ? `${format(new Date(filterStartDate), 'dd MMM yyyy')} - ${format(new Date(filterEndDate), 'dd MMM yyyy')}` :
@@ -192,7 +190,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         </button>
 
                         {showDatePicker && (
-                            <div className="absolute right-0 mt-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 w-64 min-w-[280px]">
+                            <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 w-72">
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Start Date</label>
@@ -286,23 +284,23 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                         const isSaving = expense.category === 'Saving';
 
                         return (
-                            <div key={expense.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                                <div className="flex items-center gap-4">
+                            <div key={expense.id} className="px-3 sm:px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group gap-2">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
                                     <div className={cn(
-                                        "p-2 rounded-lg",
+                                        "p-2 rounded-lg shrink-0",
                                         isIncome ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" :
                                             isLiving ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" :
                                                 isPlaying ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" :
                                                     "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
                                     )}>
-                                        {isIncome && <Banknote className="w-5 h-5" />}
-                                        {isLiving && <Home className="w-5 h-5" />}
-                                        {isPlaying && <Gamepad2 className="w-5 h-5" />}
-                                        {isSaving && <PiggyBank className="w-5 h-5" />}
+                                        {isIncome && <Banknote className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                        {isLiving && <Home className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                        {isPlaying && <Gamepad2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+                                        {isSaving && <PiggyBank className="w-4 h-4 sm:w-5 sm:h-5" />}
                                     </div>
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 dark:text-white">{expense.description}</h4>
-                                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="min-w-0">
+                                        <h4 className="font-medium text-sm sm:text-base text-gray-900 dark:text-white truncate">{expense.description}</h4>
+                                        <div className="flex flex-wrap items-center gap-1 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                                             <span>{format(new Date(expense.date), 'MMM d, yyyy')}</span>
                                             <span>•</span>
                                             <span>{expense.category}</span>
@@ -314,20 +312,20 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                             )}
                                             {expense.source === 'Credit Card' && (
                                                 <span className="text-[9px] uppercase tracking-wider bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">
-                                                    Credit Card
+                                                    CC
                                                 </span>
                                             )}
                                             {expense.profiles && (
-                                                <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-full text-xs text-gray-600 dark:text-gray-300">
-                                                    Added by {expense.profiles.full_name || expense.profiles.username || 'Unknown'}
+                                                <span className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-full text-xs text-gray-600 dark:text-gray-300 hidden sm:inline">
+                                                    {expense.profiles.full_name || expense.profiles.username || 'Unknown'}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-end gap-2 shrink-0">
+                                <div className="flex flex-col items-end gap-1.5 shrink-0">
                                     <span className={cn(
-                                        "font-semibold",
+                                        "font-semibold text-sm sm:text-base",
                                         (isIncome || (isSaving && expense.amount < 0)) ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-white"
                                     )}>
                                         {(isIncome || (isSaving && expense.amount < 0)) ? '+' : '-'}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(Math.abs(expense.amount))}
@@ -338,7 +336,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                             className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
                                             title="Edit"
                                         >
-                                            <Pencil className="w-4 h-4" />
+                                            <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(expense.id)}
@@ -346,7 +344,7 @@ export function ExpenseList({ expenses, onDelete, onEdit }: { expenses: Expense[
                                             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
                                             title="Delete"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                         </button>
                                     </div>
                                 </div>
