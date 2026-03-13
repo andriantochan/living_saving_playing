@@ -29,10 +29,26 @@ const DEFAULT_SUB_CATEGORIES: Record<string, string[]> = {
     Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
 }
 
-export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0, savingGoals = [] }: { onSubmit: (data: ExpenseFormData) => void, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number, savingGoals?: SavingGoal[] }) {
+// Format raw digit string to Indonesian thousands-separator display
+function formatDisplay(raw: string): string {
+    if (!raw) return ''
+    const num = parseInt(raw, 10)
+    if (isNaN(num)) return ''
+    return new Intl.NumberFormat('id-ID').format(num)
+}
+
+
+
+export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0, savingGoals = [] }: {
+    onSubmit: (data: ExpenseFormData) => void
+    initialData?: ExpenseFormData
+    onCancel?: () => void
+    totalSavings?: number
+    savingGoals?: SavingGoal[]
+}) {
     const [amount, setAmount] = useState('')
     const [category, setCategory] = useState<'Living' | 'Playing' | 'Saving' | 'Income'>('Living')
-    const [subCategory, setSubCategory] = useState<string>('Makan') // Default first item
+    const [subCategory, setSubCategory] = useState<string>('Makan')
     const [isWithdrawal, setIsWithdrawal] = useState(false)
     const [source, setSource] = useState<'Balance' | 'Saving' | 'Credit Card'>('Balance')
     const [description, setDescription] = useState('')
@@ -40,11 +56,8 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const subCategories: Record<string, string[]> = {
-        ...DEFAULT_SUB_CATEGORIES
-    }
+    const subCategories: Record<string, string[]> = { ...DEFAULT_SUB_CATEGORIES }
 
-    // Reset sub category when main category changes
     useEffect(() => {
         if (!initialData) {
             setSubCategory(DEFAULT_SUB_CATEGORIES[category][0])
@@ -67,7 +80,6 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 setSubCategory(subCategories[initialData.category][0])
             }
             setDescription(initialData.description)
-            // Format date for date input (YYYY-MM-DD)
             const d = new Date(initialData.date)
             const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
             setDate(localDate)
@@ -75,17 +87,16 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 setSource(initialData.source)
             }
         } else {
-            // Default source is Balance
             setSource('Balance')
         }
     }, [initialData])
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
         setLoading(true)
 
-        // Validate amount
         let cleanAmount = parseInt(amount, 10)
         if (isNaN(cleanAmount) || cleanAmount <= 0) {
             setError('Please enter a valid amount')
@@ -93,7 +104,6 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             return
         }
 
-        // Validate Savings Balance
         if ((category === 'Living' || category === 'Playing') && source === 'Saving') {
             if (cleanAmount > totalSavings) {
                 setError(`Insufficient savings! You only have Rp ${totalSavings.toLocaleString('id-ID')}`)
@@ -112,10 +122,8 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             return
         }
 
-        // Simulate network delay for UX
         await new Promise(resolve => setTimeout(resolve, 500))
 
-        // Use noon (12:00) to avoid timezone date shifting issues
         const finalDate = date ? new Date(`${date}T12:00:00`).toISOString() : new Date().toISOString()
 
         onSubmit({
@@ -127,7 +135,6 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             source: (category === 'Living' || category === 'Playing') ? source : undefined
         })
 
-        // Reset form if not editing
         if (!initialData) {
             setAmount('')
             setDescription('')
@@ -142,15 +149,16 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Category selector */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
                 <div className="grid grid-cols-4 gap-2">
-                    {['Living', 'Playing', 'Saving', 'Income'].map((cat) => (
+                    {(['Living', 'Playing', 'Saving', 'Income'] as const).map((cat) => (
                         <button
                             type="button"
                             key={cat}
                             onClick={() => {
-                                setCategory(cat as any)
+                                setCategory(cat)
                                 if (cat !== 'Saving') setIsWithdrawal(false)
                             }}
                             className={cn(
@@ -165,7 +173,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                     ))}
                 </div>
 
-                {/* ID: Savings Withdrawal Toggle */}
+                {/* Savings Withdrawal Toggle */}
                 {category === 'Saving' && (
                     <div className="mt-3 flex items-center space-x-4 bg-gray-50 p-2 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Action:</span>
@@ -205,7 +213,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                     {category === 'Income' && "Earnings: Salary, freelance, gifts."}
                 </p>
 
-                {/* Sub Category Dropdown */}
+                {/* Sub Category */}
                 <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Sub Category</label>
                     <select
@@ -220,7 +228,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                     </select>
                 </div>
 
-                {/* ID: Source Selection for Living/Playing */}
+                {/* Payment Source */}
                 {(category === 'Living' || category === 'Playing') && (
                     <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-gray-400">Payment Source</label>
@@ -275,20 +283,46 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
+                {/* Amount input */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
+
+                <div className={cn(
+                    "w-full h-14 px-4 rounded-md border-2 flex items-center justify-between transition-colors",
+                    amount
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                        : "border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600"
+                )}>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 font-medium shrink-0">Rp</span>
                     <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="e.g. 50000"
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                        required
+                        type="text"
+                        inputMode="numeric"
+                        value={amount ? formatDisplay(amount) : ''}
+                        onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '')
+                            if (digits === '') {
+                                setAmount('')
+                            } else if (digits.length <= 12) {
+                                setAmount(String(parseInt(digits, 10)))
+                            }
+                        }}
+                        placeholder="0"
+                        className="flex-1 text-2xl font-bold tracking-wide text-right bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 mx-2"
                     />
+                    {amount && (
+                        <button
+                            type="button"
+                            onClick={() => setAmount('')}
+                            className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors shrink-0"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
+            </div>
+
+            {/* Description + Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
                     <input
@@ -299,17 +333,16 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                         className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     />
                 </div>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
-                <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use today's date.</p>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
+                    <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                    <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use today's date.</p>
+                </div>
             </div>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}

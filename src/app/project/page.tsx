@@ -57,12 +57,13 @@ function ProjectContent() {
     const [expenses, setExpenses] = useState<Expense[]>([])
     const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([])
     const [loading, setLoading] = useState(true)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const [showForm, setShowForm] = useState(false)
     const [showSavingGoalForm, setShowSavingGoalForm] = useState(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [inviteEmail, setInviteEmail] = useState('')
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
-    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().substring(0, 7)) // YYYY-MM or 'all'
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().substring(0, 7))
     const [currentProject, setCurrentProject] = useState<Project | null>(null)
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
@@ -219,8 +220,9 @@ function ProjectContent() {
             return
         }
 
+        setIsSubmitting(true)
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        if (!user) { setIsSubmitting(false); return }
 
         const expensesToInsert = [
             {
@@ -231,11 +233,10 @@ function ProjectContent() {
                 date: data.date,
                 source: data.source,
                 project_id: currentProject.id,
-                user_id: user.id // Keeping user_id for audit, specifically requested by schema too
+                user_id: user.id
             }
         ]
 
-        // If paid from savings, add a withdrawal transaction
         if (data.source === 'Saving') {
             expensesToInsert.push({
                 amount: -data.amount,
@@ -250,6 +251,7 @@ function ProjectContent() {
         }
 
         const { error } = await supabase.from('expenses').insert(expensesToInsert)
+        setIsSubmitting(false)
 
         if (error) {
             console.error('Error adding expense:', error)
@@ -264,6 +266,7 @@ function ProjectContent() {
 
     const handleUpdateExpense = async (data: Omit<Expense, 'id' | 'profiles'>) => {
         if (!editingExpense || !currentProject) return
+        setIsSubmitting(true)
         const { error } = await supabase
             .from('expenses')
             .update({
@@ -275,8 +278,9 @@ function ProjectContent() {
                 source: data.source,
             })
             .eq('id', editingExpense.id)
-            .eq('project_id', currentProject.id) // Security check
+            .eq('project_id', currentProject.id)
 
+        setIsSubmitting(false)
         if (error) {
             console.error('Error updating expense:', error)
             toast.error('Failed to update expense')
@@ -504,21 +508,31 @@ function ProjectContent() {
                         <Modal
                             isOpen={showForm}
                             onClose={() => {
+                                if (isSubmitting) return  // prevent closing while submitting
                                 setShowForm(false)
                                 setEditingExpense(null)
                             }}
                             title={editingExpense ? 'Edit Expense' : 'Add New Expense'}
                         >
-                            <ExpenseForm
-                                initialData={editingExpense || undefined}
-                                // @ts-ignore - simplified type handling for this interaction
-                                onSubmit={editingExpense ? handleUpdateExpense : handleAddExpense}
-                                onCancel={() => {
-                                    setShowForm(false)
-                                    setEditingExpense(null)
-                                }}
-                                totalSavings={totalSavings}
-                            />
+                            <div className="relative">
+                                {/* Loading overlay */}
+                                {isSubmitting && (
+                                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-900/80 rounded-lg backdrop-blur-sm">
+                                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+                                        <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">Saving...</p>
+                                    </div>
+                                )}
+                                <ExpenseForm
+                                    initialData={editingExpense || undefined}
+                                    // @ts-ignore - simplified type handling for this interaction
+                                    onSubmit={editingExpense ? handleUpdateExpense : handleAddExpense}
+                                    onCancel={() => {
+                                        setShowForm(false)
+                                        setEditingExpense(null)
+                                    }}
+                                    totalSavings={totalSavings}
+                                />
+                            </div>
                         </Modal>
 
                         <Modal
