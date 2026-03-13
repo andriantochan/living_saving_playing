@@ -148,11 +148,11 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
             {/* Category selector */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
-                <div className="grid grid-cols-4 gap-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
+                <div className="grid grid-cols-4 gap-1.5">
                     {(['Living', 'Playing', 'Saving', 'Income'] as const).map((cat) => (
                         <button
                             type="button"
@@ -162,7 +162,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                                 if (cat !== 'Saving') setIsWithdrawal(false)
                             }}
                             className={cn(
-                                "py-2 px-2 rounded-md text-xs sm:text-sm font-medium transition-colors border truncate",
+                                "py-1.5 px-1.5 rounded-md text-xs font-medium transition-colors border truncate",
                                 category === cat
                                     ? "bg-indigo-600 text-white border-indigo-600"
                                     : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
@@ -214,12 +214,12 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 </p>
 
                 {/* Sub Category */}
-                <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Sub Category</label>
+                <div className="mt-3">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Sub Category</label>
                     <select
                         value={subCategory}
                         onChange={(e) => setSubCategory(e.target.value)}
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        className="w-full h-9 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     >
                         {subCategories[category].map((subCat) => (
@@ -285,10 +285,10 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
 
                 {/* Amount input */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
 
                 <div className={cn(
-                    "w-full h-14 px-4 rounded-md border-2 flex items-center justify-between transition-colors",
+                    "w-full h-11 px-3 rounded-md border-2 flex items-center justify-between transition-colors",
                     amount
                         ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
                         : "border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600"
@@ -307,7 +307,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                             }
                         }}
                         placeholder="0"
-                        className="flex-1 text-2xl font-bold tracking-wide text-right bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 mx-2"
+                        className="flex-1 text-lg font-bold tracking-wide text-right bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 mx-2"
                     />
                     {amount && (
                         <button
@@ -322,26 +322,26 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             </div>
 
             {/* Description + Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
                     <input
                         type="text"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="e.g. Steam Wallet, Nasi Goreng"
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                        className="w-full h-9 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
                     <input
                         type="date"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        className="w-full h-9 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
-                    <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use today's date.</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Leave empty for today.</p>
                 </div>
             </div>
 
@@ -351,7 +351,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 type="submit"
                 disabled={loading}
                 className={cn(
-                    "w-full flex items-center justify-center text-white font-medium py-2.5 rounded-lg transition-all focus:ring-4 disabled:opacity-70",
+                    "w-full flex items-center justify-center text-white text-sm font-medium py-2 rounded-lg transition-all focus:ring-4 disabled:opacity-70",
                     initialData
                         ? "bg-amber-500 hover:bg-amber-600 focus:ring-amber-200"
                         : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-200 dark:bg-indigo-500 dark:hover:bg-indigo-600"
