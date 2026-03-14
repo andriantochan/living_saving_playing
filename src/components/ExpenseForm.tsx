@@ -23,13 +23,13 @@ type SavingGoal = {
 }
 
 const DEFAULT_SUB_CATEGORIES: Record<string, string[]> = {
-    Living: ['Listrik', 'Uang Kos', 'Wifi', 'Makan', 'Groceries', 'Transport', 'Lainnya'],
+    Living: ['Makan', 'Groceries', 'Laundry', 'Listrik', 'Uang Kos', 'Wifi', 'Transport', 'Lainnya'],
     Playing: ['Fashion', 'Skincare/Makeup', 'Jalan-jalan', 'Jajan', 'Gym', 'Hobi', 'Langganan', 'Lainnya'],
     Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
     Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
 }
 
-export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0, savingGoals = [] }: { onSubmit: (data: ExpenseFormData) => void, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number, savingGoals?: SavingGoal[] }) {
+export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0, savingGoals = [] }: { onSubmit: (data: ExpenseFormData) => void | Promise<void>, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number, savingGoals?: SavingGoal[] }) {
     const [amount, setAmount] = useState('')
     const [category, setCategory] = useState<'Living' | 'Playing' | 'Saving' | 'Income'>('Living')
     const [subCategory, setSubCategory] = useState<string>('Makan') // Default first item
@@ -67,11 +67,11 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 setSubCategory(subCategories[initialData.category][0])
             }
             setDescription(initialData.description)
-            // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
+            // Format date for date input (YYYY-MM-DD)
             const d = new Date(initialData.date)
-            // Adjust to local ISO string roughly
-            const localIso = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16)
-            setDate(localIso)
+            // Adjust to local date string YYYY-MM-DD
+            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0]
+            setDate(localDate)
             if (initialData.source) {
                 setSource(initialData.source)
             }
@@ -117,31 +117,54 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
         await new Promise(resolve => setTimeout(resolve, 500))
 
         const finalDate = date ? new Date(date).toISOString() : new Date().toISOString()
+        
+        try {
+            await onSubmit({
+                amount: cleanAmount,
+                category,
+                sub_category: subCategory,
+                description,
+                date: finalDate,
+                source: (category === 'Living' || category === 'Playing') ? source : undefined
+            })
 
-        onSubmit({
-            amount: cleanAmount,
-            category,
-            sub_category: subCategory,
-            description,
-            date: finalDate,
-            source: (category === 'Living' || category === 'Playing') ? source : undefined
-        })
-
-        // Reset form if not editing
-        if (!initialData) {
-            setAmount('')
-            setDescription('')
-            setDate('')
-            setCategory('Living')
-            setSubCategory(subCategories['Living'][0])
-            setIsWithdrawal(false)
-            setSource('Balance')
+            // Reset form if not editing
+            if (!initialData) {
+                setAmount('')
+                setDescription('')
+                setDate('')
+                setCategory('Living')
+                setSubCategory(subCategories['Living'][0])
+                setIsWithdrawal(false)
+                setSource('Balance')
+            }
+        } catch (err) {
+            console.error(err)
+            setError('Something went wrong. Please try again.')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 relative overflow-hidden">
+            {/* Loading Bar Overlay */}
+            {loading && (
+                <div className="absolute top-0 left-0 right-0 h-1 z-50 overflow-hidden">
+                    <div className="h-full bg-indigo-600 dark:bg-indigo-400 animate-[loading_1.5s_infinite_linear]" 
+                         style={{ 
+                             width: '30%',
+                             background: 'linear-gradient(90deg, transparent, currentColor, transparent)'
+                         }} 
+                    />
+                </div>
+            )}
+            <style jsx>{`
+                @keyframes loading {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(400%); }
+                }
+            `}</style>
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
                 <div className="grid grid-cols-4 gap-2">
@@ -278,16 +301,34 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
-                    <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="e.g. 50000"
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-                        required
-                    />
+                    <div className="relative group">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-bold pointer-events-none group-focus-within:text-indigo-600 transition-colors">Rp</span>
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            value={amount ? parseInt(amount, 10).toLocaleString('id-ID') : ''}
+                            onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, '')
+                                if (digits === '') {
+                                    setAmount('')
+                                } else if (digits.length <= 12) {
+                                    setAmount(digits)
+                                }
+                            }}
+                            placeholder="0"
+                            className="w-full h-10 pl-9 pr-8 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white placeholder-gray-400 transition-all font-semibold"
+                            required
+                        />
+                        {amount && (
+                            <button
+                                type="button"
+                                onClick={() => setAmount('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
@@ -304,7 +345,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
                 <input
-                    type="datetime-local"
+                    type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"

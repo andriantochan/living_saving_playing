@@ -369,7 +369,8 @@ function ProjectContent() {
                 const type = exp.category === 'Saving' ? 'Income' : 'Expense'
                 const desc = `"${(exp.description || '').replace(/"/g, '""')}"`
                 const addedBy = exp.profiles ? (exp.profiles.full_name || exp.profiles.username || 'Unknown') : 'Unknown'
-                return `${exp.date},${exp.category},${desc},${exp.amount},${type},${addedBy}`
+                const dateOnly = new Date(exp.date).toISOString().split('T')[0]
+                return `${dateOnly},${exp.category},${desc},${exp.amount},${type},${addedBy}`
             })
         ].join('\n')
 
