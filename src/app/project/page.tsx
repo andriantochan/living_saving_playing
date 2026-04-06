@@ -60,6 +60,7 @@ function ProjectContent() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showForm, setShowForm] = useState(false)
     const [showSavingGoalForm, setShowSavingGoalForm] = useState(false)
+    const [editingSavingGoal, setEditingSavingGoal] = useState<SavingGoal | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [inviteEmail, setInviteEmail] = useState('')
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
@@ -312,6 +313,43 @@ function ProjectContent() {
         }
     }
 
+    const handleEditSavingGoal = async (data: { name: string, sub_category: string, target_amount: number }) => {
+        if (!currentProject || !editingSavingGoal) return
+
+        const { error } = await supabase
+            .from('saving_goals')
+            .update({ name: data.name, sub_category: data.sub_category, target_amount: data.target_amount })
+            .eq('id', editingSavingGoal.id)
+            .eq('project_id', currentProject.id)
+
+        if (error) {
+            toast.error('Failed to update saving goal')
+        } else {
+            toast.success('Saving goal updated successfully')
+            fetchSavingGoals(currentProject.id)
+            setShowSavingGoalForm(false)
+            setEditingSavingGoal(null)
+        }
+    }
+
+    const handleDeleteSavingGoal = async (goalId: string) => {
+        if (!currentProject) return
+        if (!confirm('Are you sure you want to delete this saving goal?')) return
+
+        const { error } = await supabase
+            .from('saving_goals')
+            .delete()
+            .eq('id', goalId)
+            .eq('project_id', currentProject.id)
+
+        if (error) {
+            toast.error('Failed to delete saving goal')
+        } else {
+            toast.success('Saving goal deleted')
+            fetchSavingGoals(currentProject.id)
+        }
+    }
+
     const handleInviteMember = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentProject || !inviteEmail) return
@@ -494,7 +532,9 @@ function ProjectContent() {
                         <Dashboard
                             allExpenses={expenses}
                             savingGoals={savingGoals}
-                            onAddSavingGoal={() => setShowSavingGoalForm(true)}
+                            onAddSavingGoal={() => { setEditingSavingGoal(null); setShowSavingGoalForm(true) }}
+                            onEditSavingGoal={(goal) => { setEditingSavingGoal(goal); setShowSavingGoalForm(true) }}
+                            onDeleteSavingGoal={handleDeleteSavingGoal}
                             expenses={selectedMonth === 'all' ? expenses : expenses.filter(e => e.date.startsWith(selectedMonth))}
                             onAddExpense={handleAddExpense}
                             totalIncome={totalIncome}
@@ -537,12 +577,13 @@ function ProjectContent() {
 
                         <Modal
                             isOpen={showSavingGoalForm}
-                            onClose={() => setShowSavingGoalForm(false)}
-                            title="Add New Saving Goal"
+                            onClose={() => { setShowSavingGoalForm(false); setEditingSavingGoal(null) }}
+                            title={editingSavingGoal ? 'Edit Saving Goal' : 'Add New Saving Goal'}
                         >
                             <SavingGoalForm
-                                onSubmit={handleAddSavingGoal}
-                                onCancel={() => setShowSavingGoalForm(false)}
+                                onSubmit={editingSavingGoal ? handleEditSavingGoal : handleAddSavingGoal}
+                                onCancel={() => { setShowSavingGoalForm(false); setEditingSavingGoal(null) }}
+                                initialData={editingSavingGoal ?? undefined}
                             />
                         </Modal>
 

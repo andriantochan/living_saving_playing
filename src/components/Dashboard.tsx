@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Legend } from 'recharts'
-import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign, PiggyBank, PlusCircle, Eye, EyeOff } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight, DollarSign, PiggyBank, PlusCircle, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Modal } from './Modal'
 import { ExpenseForm } from './ExpenseForm'
@@ -26,7 +26,7 @@ export type SavingGoal = {
     current_amount: number
 }
 
-export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddExpense, onAddSavingGoal, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0, isSingleMonthView = false }: { expenses: Expense[], allExpenses?: Expense[], savingGoals?: SavingGoal[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, onAddSavingGoal?: () => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number, isSingleMonthView?: boolean }) {
+export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddExpense, onAddSavingGoal, onEditSavingGoal, onDeleteSavingGoal, totalIncome, totalExpenses, balance, totalSavings, creditCardDebt = 0, isSingleMonthView = false }: { expenses: Expense[], allExpenses?: Expense[], savingGoals?: SavingGoal[], onAddExpense: (expense: Omit<Expense, 'id'>) => void, onAddSavingGoal?: () => void, onEditSavingGoal?: (goal: SavingGoal) => void, onDeleteSavingGoal?: (goalId: string) => void, totalIncome: number, totalExpenses: number, balance: number, totalSavings: number, creditCardDebt?: number, isSingleMonthView?: boolean }) {
     const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<'All' | 'Living' | 'Playing' | 'Saving'>('All')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isBalanceHidden, setIsBalanceHidden] = useState(true)
@@ -273,11 +273,31 @@ export function Dashboard({ expenses, allExpenses = [], savingGoals = [], onAddE
                                 const percent = Math.min(100, Math.round((currentSaved / goal.target_amount) * 100))
                                 return (
                                     <div key={goal.id} className="space-y-1.5">
-                                        <div className="flex justify-between text-sm items-end gap-2">
+                                        <div className="flex justify-between text-sm items-center gap-2">
                                             <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">{goal.name}</span>
-                                            <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded shrink-0 whitespace-nowrap">
-                                                {formatCurrency(currentSaved)} / {formatCurrency(goal.target_amount)}
-                                            </span>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded whitespace-nowrap">
+                                                    {formatCurrency(currentSaved)} / {formatCurrency(goal.target_amount)}
+                                                </span>
+                                                {onEditSavingGoal && (
+                                                    <button
+                                                        onClick={() => onEditSavingGoal(goal)}
+                                                        className="p-1 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded transition-colors"
+                                                        title="Edit Goal"
+                                                    >
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                                {onDeleteSavingGoal && (
+                                                    <button
+                                                        onClick={() => onDeleteSavingGoal(goal.id)}
+                                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                                                        title="Delete Goal"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="w-full bg-gray-100 rounded-full h-3 dark:bg-gray-700 overflow-hidden border border-gray-200 dark:border-gray-600">
                                             <div
