@@ -33,19 +33,23 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     if (!mounted || !isOpen) return null
 
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            {/* Backdrop click to close */}
             <div
                 className="fixed inset-0"
                 onClick={onClose}
                 aria-hidden="true"
             />
+
+            {/* Modal panel — centered on all devices */}
             <div
-                className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg transform transition-all animate-in zoom-in-95 duration-200"
+                className="relative bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-xl max-h-[85dvh] flex flex-col animate-in zoom-in-95 duration-200"
                 role="dialog"
                 aria-modal="true"
             >
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
+                    <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                         {title}
                     </h3>
                     <button
@@ -55,7 +59,9 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-                <div className="p-6">
+
+                {/* Scrollable content */}
+                <div className="overflow-y-auto flex-1 p-3 sm:p-6">
                     {children}
                 </div>
             </div>
@@ -63,3 +69,4 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         document.body
     )
 }
+

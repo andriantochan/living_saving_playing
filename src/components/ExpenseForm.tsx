@@ -23,16 +23,32 @@ type SavingGoal = {
 }
 
 const DEFAULT_SUB_CATEGORIES: Record<string, string[]> = {
-    Living: ['Makan', 'Groceries', 'Laundry', 'Listrik', 'Uang Kos', 'Wifi', 'Transport', 'Lainnya'],
+    Living: ['Makan', 'Groceries', 'Laundry', 'Wifi', 'Listrik', 'Uang Kos', 'Transport', 'Lainnya'],
     Playing: ['Fashion', 'Skincare/Makeup', 'Jalan-jalan', 'Jajan', 'Gym', 'Hobi', 'Langganan', 'Lainnya'],
     Saving: ['Darurat', 'Investasi', 'Tabungan', 'Lainnya'],
     Income: ['Gaji', 'Bonus', 'Hadiah', 'Lainnya']
 }
 
-export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0, savingGoals = [] }: { onSubmit: (data: ExpenseFormData) => void | Promise<void>, initialData?: ExpenseFormData, onCancel?: () => void, totalSavings?: number, savingGoals?: SavingGoal[] }) {
+// Format raw digit string to Indonesian thousands-separator display
+function formatDisplay(raw: string): string {
+    if (!raw) return ''
+    const num = parseInt(raw, 10)
+    if (isNaN(num)) return ''
+    return new Intl.NumberFormat('id-ID').format(num)
+}
+
+
+
+export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0, savingGoals = [] }: {
+    onSubmit: (data: ExpenseFormData) => void
+    initialData?: ExpenseFormData
+    onCancel?: () => void
+    totalSavings?: number
+    savingGoals?: SavingGoal[]
+}) {
     const [amount, setAmount] = useState('')
     const [category, setCategory] = useState<'Living' | 'Playing' | 'Saving' | 'Income'>('Living')
-    const [subCategory, setSubCategory] = useState<string>('Makan') // Default first item
+    const [subCategory, setSubCategory] = useState<string>('Makan')
     const [isWithdrawal, setIsWithdrawal] = useState(false)
     const [source, setSource] = useState<'Balance' | 'Saving' | 'Credit Card'>('Balance')
     const [description, setDescription] = useState('')
@@ -40,11 +56,8 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const subCategories: Record<string, string[]> = {
-        ...DEFAULT_SUB_CATEGORIES
-    }
+    const subCategories: Record<string, string[]> = { ...DEFAULT_SUB_CATEGORIES }
 
-    // Reset sub category when main category changes
     useEffect(() => {
         if (!initialData) {
             setSubCategory(DEFAULT_SUB_CATEGORIES[category][0])
@@ -67,26 +80,23 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 setSubCategory(subCategories[initialData.category][0])
             }
             setDescription(initialData.description)
-            // Format date for date input (YYYY-MM-DD)
             const d = new Date(initialData.date)
-            // Adjust to local date string YYYY-MM-DD
-            const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0]
+            const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
             setDate(localDate)
             if (initialData.source) {
                 setSource(initialData.source)
             }
         } else {
-            // Default source is Balance
             setSource('Balance')
         }
     }, [initialData])
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
         setLoading(true)
 
-        // Validate amount
         let cleanAmount = parseInt(amount, 10)
         if (isNaN(cleanAmount) || cleanAmount <= 0) {
             setError('Please enter a valid amount')
@@ -94,7 +104,6 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             return
         }
 
-        // Validate Savings Balance
         if ((category === 'Living' || category === 'Playing') && source === 'Saving') {
             if (cleanAmount > totalSavings) {
                 setError(`Insufficient savings! You only have Rp ${totalSavings.toLocaleString('id-ID')}`)
@@ -113,71 +122,47 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
             return
         }
 
-        // Simulate network delay for UX
         await new Promise(resolve => setTimeout(resolve, 500))
 
-        const finalDate = date ? new Date(date).toISOString() : new Date().toISOString()
-        
-        try {
-            await onSubmit({
-                amount: cleanAmount,
-                category,
-                sub_category: subCategory,
-                description,
-                date: finalDate,
-                source: (category === 'Living' || category === 'Playing') ? source : undefined
-            })
+        const finalDate = date ? new Date(`${date}T12:00:00`).toISOString() : new Date().toISOString()
 
-            // Reset form if not editing
-            if (!initialData) {
-                setAmount('')
-                setDescription('')
-                setDate('')
-                setCategory('Living')
-                setSubCategory(subCategories['Living'][0])
-                setIsWithdrawal(false)
-                setSource('Balance')
-            }
-        } catch (err) {
-            console.error(err)
-            setError('Something went wrong. Please try again.')
-        } finally {
-            setLoading(false)
+        onSubmit({
+            amount: cleanAmount,
+            category,
+            sub_category: subCategory,
+            description,
+            date: finalDate,
+            source: (category === 'Living' || category === 'Playing') ? source : undefined
+        })
+
+        if (!initialData) {
+            setAmount('')
+            setDescription('')
+            setDate('')
+            setCategory('Living')
+            setSubCategory(subCategories['Living'][0])
+            setIsWithdrawal(false)
+            setSource('Balance')
         }
+        setLoading(false)
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 relative overflow-hidden">
-            {/* Loading Bar Overlay */}
-            {loading && (
-                <div className="absolute top-0 left-0 right-0 h-1 z-50 overflow-hidden">
-                    <div className="h-full bg-indigo-600 dark:bg-indigo-400 animate-[loading_1.5s_infinite_linear]" 
-                         style={{ 
-                             width: '30%',
-                             background: 'linear-gradient(90deg, transparent, currentColor, transparent)'
-                         }} 
-                    />
-                </div>
-            )}
-            <style jsx>{`
-                @keyframes loading {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(400%); }
-                }
-            `}</style>
+        <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Category selector */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
-                <div className="grid grid-cols-4 gap-2">
-                    {['Living', 'Playing', 'Saving', 'Income'].map((cat) => (
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Category</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                    {(['Living', 'Playing', 'Saving', 'Income'] as const).map((cat) => (
                         <button
                             type="button"
                             key={cat}
                             onClick={() => {
-                                setCategory(cat as any)
+                                setCategory(cat)
                                 if (cat !== 'Saving') setIsWithdrawal(false)
                             }}
                             className={cn(
-                                "py-2 px-2 rounded-md text-xs sm:text-sm font-medium transition-colors border truncate",
+                                "py-1.5 px-1.5 rounded-md text-xs font-medium transition-colors border truncate",
                                 category === cat
                                     ? "bg-indigo-600 text-white border-indigo-600"
                                     : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
@@ -188,7 +173,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                     ))}
                 </div>
 
-                {/* ID: Savings Withdrawal Toggle */}
+                {/* Savings Withdrawal Toggle */}
                 {category === 'Saving' && (
                     <div className="mt-3 flex items-center space-x-4 bg-gray-50 p-2 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Action:</span>
@@ -228,13 +213,13 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                     {category === 'Income' && "Earnings: Salary, freelance, gifts."}
                 </p>
 
-                {/* Sub Category Dropdown */}
-                <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Sub Category</label>
+                {/* Sub Category */}
+                <div className="mt-3">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Sub Category</label>
                     <select
                         value={subCategory}
                         onChange={(e) => setSubCategory(e.target.value)}
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        className="w-full h-9 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                         required
                     >
                         {subCategories[category].map((subCat) => (
@@ -243,7 +228,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                     </select>
                 </div>
 
-                {/* ID: Source Selection for Living/Playing */}
+                {/* Payment Source */}
                 {(category === 'Living' || category === 'Playing') && (
                     <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 dark:text-gray-400">Payment Source</label>
@@ -298,59 +283,66 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
-                    <div className="relative group">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-bold pointer-events-none group-focus-within:text-indigo-600 transition-colors">Rp</span>
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={amount ? parseInt(amount, 10).toLocaleString('id-ID') : ''}
-                            onChange={(e) => {
-                                const digits = e.target.value.replace(/\D/g, '')
-                                if (digits === '') {
-                                    setAmount('')
-                                } else if (digits.length <= 12) {
-                                    setAmount(digits)
-                                }
-                            }}
-                            placeholder="0"
-                            className="w-full h-10 pl-9 pr-8 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white placeholder-gray-400 transition-all font-semibold"
-                            required
-                        />
-                        {amount && (
-                            <button
-                                type="button"
-                                onClick={() => setAmount('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
+                {/* Amount input */}
+            <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Amount (IDR)</label>
+
+                <div className={cn(
+                    "w-full h-11 px-3 rounded-md border-2 flex items-center justify-between transition-colors",
+                    amount
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                        : "border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600"
+                )}>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 font-medium shrink-0">Rp</span>
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        value={amount ? formatDisplay(amount) : ''}
+                        onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '')
+                            if (digits === '') {
+                                setAmount('')
+                            } else if (digits.length <= 12) {
+                                setAmount(String(parseInt(digits, 10)))
+                            }
+                        }}
+                        placeholder="0"
+                        className="flex-1 text-lg font-bold tracking-wide text-right bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 mx-2"
+                    />
+                    {amount && (
+                        <button
+                            type="button"
+                            onClick={() => setAmount('')}
+                            className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors shrink-0"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
+            </div>
+
+            {/* Description + Date */}
+            <div className="grid grid-cols-1 gap-3">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Description</label>
                     <input
                         type="text"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="e.g. Steam Wallet, Nasi Goreng"
-                        className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+                        className="w-full h-9 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                     />
                 </div>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
-                <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full h-10 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Leave empty to use current time.</p>
+                <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Date (Optional)</label>
+                    <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="w-full h-9 px-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                    <p className="text-xs text-gray-400 mt-0.5">Leave empty for today.</p>
+                </div>
             </div>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -359,7 +351,7 @@ export function ExpenseForm({ onSubmit, initialData, onCancel, totalSavings = 0,
                 type="submit"
                 disabled={loading}
                 className={cn(
-                    "w-full flex items-center justify-center text-white font-medium py-2.5 rounded-lg transition-all focus:ring-4 disabled:opacity-70",
+                    "w-full flex items-center justify-center text-white text-sm font-medium py-2 rounded-lg transition-all focus:ring-4 disabled:opacity-70",
                     initialData
                         ? "bg-amber-500 hover:bg-amber-600 focus:ring-amber-200"
                         : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-200 dark:bg-indigo-500 dark:hover:bg-indigo-600"

@@ -57,12 +57,14 @@ function ProjectContent() {
     const [expenses, setExpenses] = useState<Expense[]>([])
     const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([])
     const [loading, setLoading] = useState(true)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const [showForm, setShowForm] = useState(false)
     const [showSavingGoalForm, setShowSavingGoalForm] = useState(false)
+    const [editingSavingGoal, setEditingSavingGoal] = useState<SavingGoal | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [inviteEmail, setInviteEmail] = useState('')
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
-    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().substring(0, 7)) // YYYY-MM or 'all'
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().substring(0, 7))
     const [currentProject, setCurrentProject] = useState<Project | null>(null)
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
@@ -219,8 +221,9 @@ function ProjectContent() {
             return
         }
 
+        setIsSubmitting(true)
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        if (!user) { setIsSubmitting(false); return }
 
         const expensesToInsert = [
             {
@@ -231,11 +234,10 @@ function ProjectContent() {
                 date: data.date,
                 source: data.source,
                 project_id: currentProject.id,
-                user_id: user.id // Keeping user_id for audit, specifically requested by schema too
+                user_id: user.id
             }
         ]
 
-        // If paid from savings, add a withdrawal transaction
         if (data.source === 'Saving') {
             expensesToInsert.push({
                 amount: -data.amount,
@@ -250,6 +252,7 @@ function ProjectContent() {
         }
 
         const { error } = await supabase.from('expenses').insert(expensesToInsert)
+        setIsSubmitting(false)
 
         if (error) {
             console.error('Error adding expense:', error)
@@ -264,6 +267,7 @@ function ProjectContent() {
 
     const handleUpdateExpense = async (data: Omit<Expense, 'id' | 'profiles'>) => {
         if (!editingExpense || !currentProject) return
+        setIsSubmitting(true)
         const { error } = await supabase
             .from('expenses')
             .update({
@@ -275,8 +279,9 @@ function ProjectContent() {
                 source: data.source,
             })
             .eq('id', editingExpense.id)
-            .eq('project_id', currentProject.id) // Security check
+            .eq('project_id', currentProject.id)
 
+        setIsSubmitting(false)
         if (error) {
             console.error('Error updating expense:', error)
             toast.error('Failed to update expense')
@@ -305,6 +310,43 @@ function ProjectContent() {
             toast.success('Saving goal added successfully')
             fetchSavingGoals(currentProject.id)
             setShowSavingGoalForm(false)
+        }
+    }
+
+    const handleEditSavingGoal = async (data: { name: string, sub_category: string, target_amount: number }) => {
+        if (!currentProject || !editingSavingGoal) return
+
+        const { error } = await supabase
+            .from('saving_goals')
+            .update({ name: data.name, sub_category: data.sub_category, target_amount: data.target_amount })
+            .eq('id', editingSavingGoal.id)
+            .eq('project_id', currentProject.id)
+
+        if (error) {
+            toast.error('Failed to update saving goal')
+        } else {
+            toast.success('Saving goal updated successfully')
+            fetchSavingGoals(currentProject.id)
+            setShowSavingGoalForm(false)
+            setEditingSavingGoal(null)
+        }
+    }
+
+    const handleDeleteSavingGoal = async (goalId: string) => {
+        if (!currentProject) return
+        if (!confirm('Are you sure you want to delete this saving goal?')) return
+
+        const { error } = await supabase
+            .from('saving_goals')
+            .delete()
+            .eq('id', goalId)
+            .eq('project_id', currentProject.id)
+
+        if (error) {
+            toast.error('Failed to delete saving goal')
+        } else {
+            toast.success('Saving goal deleted')
+            fetchSavingGoals(currentProject.id)
         }
     }
 
@@ -396,72 +438,70 @@ function ProjectContent() {
     return (
         <main className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
             <div className="max-w-5xl mx-auto px-4 py-8">
-                <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-                    <div className="flex items-center space-x-3">
-                        <Link href="/home" className="mr-2 p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors">
-                            <ArrowLeft className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                        </Link>
-                        <div className="bg-indigo-600 p-2 rounded-lg shadow-md">
-                            <Wallet className="w-6 h-6 text-white" />
+                <header className="flex flex-col mb-8 gap-3">
+                    {/* Row 1: Brand + Title */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <Link href="/home" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors">
+                                <ArrowLeft className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                            </Link>
+                            <div className="bg-indigo-600 p-2 rounded-lg shadow-md">
+                                <Wallet className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Financial Tracker</h1>
+                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                    <span className="truncate max-w-[120px] sm:max-w-none">{currentProject ? currentProject.name : 'Loading...'}</span>
+                                    {userProfile && (
+                                        <>
+                                            <span className="w-1 h-1 bg-gray-400 rounded-full shrink-0"></span>
+                                            <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium truncate">
+                                                <User className="w-3 h-3 shrink-0" />
+                                                <span className="truncate max-w-[80px] sm:max-w-none">{userProfile.full_name || userProfile.username}</span>
+                                            </span>
+                                        </>
+                                    )}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Financial Tracker</h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                                <span>{currentProject ? currentProject.name : 'Loading project...'}</span>
-                                {userProfile && (
-                                    <>
-                                        <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-                                        <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium">
-                                            <User className="w-3 h-3" />
-                                            {userProfile.full_name || userProfile.username}
-                                        </span>
-                                    </>
-                                )}
-                            </p>
+
+                        {/* Utility buttons group */}
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 focus:outline-none transition-colors shadow-sm h-9 w-9 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                                title="Sign Out"
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none transition-colors shadow-sm h-9 w-9 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                                title="Export to CSV"
+                            >
+                                <Download className="w-4 h-4" />
+                            </button>
+                            {currentProject?.role === 'owner' && (
+                                <button
+                                    onClick={() => setShowInviteModal(true)}
+                                    className="flex items-center justify-center p-2 text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 focus:outline-none transition-colors shadow-sm h-9 w-9 dark:bg-gray-800 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+                                    title="Add Member"
+                                >
+                                    <UserPlus className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        {/* Theme Toggle */}
-                        <ThemeToggle />
-
-                        {/* Logout Button */}
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 focus:outline-none focus:ring-2 focus:ring-red-200 transition-colors shadow-sm h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                            title="Sign Out"
-                        >
-                            <LogOut className="w-4 h-4" />
-                        </button>
-
-                        {/* Export CSV Button */}
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center justify-center p-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors shadow-sm h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
-                            title="Export to CSV"
-                        >
-                            <Download className="w-4 h-4" />
-                        </button>
-
-                        {/* Invite Button - visible to Owner */}
-                        {currentProject?.role === 'owner' && (
-                            <button
-                                onClick={() => setShowInviteModal(true)}
-                                className="flex items-center justify-center p-2 text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-colors shadow-sm h-10 dark:bg-gray-800 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
-                                title="Add Member"
-                            >
-                                <UserPlus className="w-4 h-4" />
-                            </button>
-                        )}
-
-
-                        {/* Month Filter Dropdown */}
-                        <div className="relative">
+                    {/* Row 2: Month filter + Add button */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1 sm:flex-none">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400" />
                             <select
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 appearance-none h-10 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                                className="w-full sm:w-auto pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 appearance-none h-9 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
                             >
                                 <option value="all">All Time</option>
                                 {availableMonths.map(month => (
@@ -471,16 +511,15 @@ function ProjectContent() {
                                 ))}
                             </select>
                         </div>
-
                         <button
                             onClick={() => {
                                 setShowForm(!showForm)
                                 setEditingExpense(null)
                             }}
-                            className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm h-10 ml-auto md:ml-0 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm h-9 dark:bg-indigo-500 dark:hover:bg-indigo-600 whitespace-nowrap"
                         >
-                            <PlusCircle className="w-5 h-5" />
-                            <span className="hidden sm:inline">{showForm && !editingExpense ? 'Hide' : 'Add'}</span>
+                            <PlusCircle className="w-4 h-4" />
+                            <span>{showForm && !editingExpense ? 'Hide' : 'Add'}</span>
                         </button>
                     </div>
                 </header>
@@ -494,7 +533,9 @@ function ProjectContent() {
                         <Dashboard
                             allExpenses={expenses}
                             savingGoals={savingGoals}
-                            onAddSavingGoal={() => setShowSavingGoalForm(true)}
+                            onAddSavingGoal={() => { setEditingSavingGoal(null); setShowSavingGoalForm(true) }}
+                            onEditSavingGoal={(goal) => { setEditingSavingGoal(goal); setShowSavingGoalForm(true) }}
+                            onDeleteSavingGoal={handleDeleteSavingGoal}
                             expenses={selectedMonth === 'all' ? expenses : expenses.filter(e => e.date.startsWith(selectedMonth))}
                             onAddExpense={handleAddExpense}
                             totalIncome={totalIncome}
@@ -508,31 +549,42 @@ function ProjectContent() {
                         <Modal
                             isOpen={showForm}
                             onClose={() => {
+                                if (isSubmitting) return  // prevent closing while submitting
                                 setShowForm(false)
                                 setEditingExpense(null)
                             }}
                             title={editingExpense ? 'Edit Expense' : 'Add New Expense'}
                         >
-                            <ExpenseForm
-                                initialData={editingExpense || undefined}
-                                // @ts-ignore - simplified type handling for this interaction
-                                onSubmit={editingExpense ? handleUpdateExpense : handleAddExpense}
-                                onCancel={() => {
-                                    setShowForm(false)
-                                    setEditingExpense(null)
-                                }}
-                                totalSavings={totalSavings}
-                            />
+                            <div className="relative">
+                                {/* Loading overlay */}
+                                {isSubmitting && (
+                                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-900/80 rounded-lg backdrop-blur-sm">
+                                        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+                                        <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">Saving...</p>
+                                    </div>
+                                )}
+                                <ExpenseForm
+                                    initialData={editingExpense || undefined}
+                                    // @ts-ignore - simplified type handling for this interaction
+                                    onSubmit={editingExpense ? handleUpdateExpense : handleAddExpense}
+                                    onCancel={() => {
+                                        setShowForm(false)
+                                        setEditingExpense(null)
+                                    }}
+                                    totalSavings={totalSavings}
+                                />
+                            </div>
                         </Modal>
 
                         <Modal
                             isOpen={showSavingGoalForm}
-                            onClose={() => setShowSavingGoalForm(false)}
-                            title="Add New Saving Goal"
+                            onClose={() => { setShowSavingGoalForm(false); setEditingSavingGoal(null) }}
+                            title={editingSavingGoal ? 'Edit Saving Goal' : 'Add New Saving Goal'}
                         >
                             <SavingGoalForm
-                                onSubmit={handleAddSavingGoal}
-                                onCancel={() => setShowSavingGoalForm(false)}
+                                onSubmit={editingSavingGoal ? handleEditSavingGoal : handleAddSavingGoal}
+                                onCancel={() => { setShowSavingGoalForm(false); setEditingSavingGoal(null) }}
+                                initialData={editingSavingGoal ?? undefined}
                             />
                         </Modal>
 
